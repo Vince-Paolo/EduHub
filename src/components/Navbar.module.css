@@ -1,0 +1,202 @@
+/* Navbar Styles */
+.navbar {
+  background: linear-gradient(135deg, #1b7e3a 0%, #22a856 100%);
+  color: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.container {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 4rem;
+}
+
+.brandContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sidebarToggle {
+  background: none;
+  border: none;
+  color: white;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+.sidebarToggle:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebarToggle .hamburgerIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brand:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+.logoIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: block;
+}
+
+.brandText {
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .brandText {
+    display: inline;
+  }
+}
+
+.navLinks {
+  display: none;
+  gap: 1rem;
+}
+
+.navLinks.visible {
+  display: flex;
+  align-items: baseline;
+}
+
+.navLink {
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.navLink:hover {
+  background-color: rgba(22, 163, 74, 0.4);
+}
+
+.logoutBtn {
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border: 1px solid #991b1b;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.logoutBtn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border-color: #7f1d1d;
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
+  transform: translateY(-1px);
+}
+
+.uploadNavBtn {
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: 1px solid #15803d;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.uploadNavBtn:hover {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  border-color: #166534;
+  box-shadow: 0 4px 8px rgba(34, 197, 94, 0.4);
+  transform: translateY(-1px);
+}
+
+.uploadNavBtn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.mobileMenuButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  background-color: rgba(22, 163, 74, 0.4);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.mobileMenuButton:hover {
+  background-color: rgba(22, 163, 74, 0.6);
+}
+
+.hamburgerIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke: currentColor;
+  fill: none;
+}
+
+/* Dark Mode Styles */
+[data-theme="dark"] .navbar {
+  background: linear-gradient(135deg, #0a3d1a 0%, #14532d 100%);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+@media (min-width: 768px) {
+  .navLinks {
+    display: flex !important;
+  }
+
+  .mobileMenuButton {
+    display: none;
+  }
+}
