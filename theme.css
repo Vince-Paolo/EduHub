@@ -1,0 +1,456 @@
+/* Module Card Styles */
+.card {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.card:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.icon {
+  font-size: 1.875rem;
+}
+
+.iconButton {
+  width: 2rem;
+  height: 2rem;
+  background-color: #dcfce7;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.card:hover .iconButton {
+  background-color: #bbf7d0;
+}
+
+/* Button Group */
+.buttonGroup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Edit Button */
+.editBtn {
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: #dbeafe;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.editBtn:hover {
+  background-color: #bfdbfe;
+  transform: scale(1.1);
+}
+
+.editSvg {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: #0284c7;
+  stroke: currentColor;
+  fill: none;
+}
+
+/* Delete Button */
+.deleteBtn {
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: #fee2e2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.deleteBtn:hover {
+  background-color: #fecaca;
+  transform: scale(1.1);
+}
+
+.deleteSvg {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: #dc2626;
+  stroke: currentColor;
+  fill: none;
+}
+
+/* Download Button */
+.downloadBtn {
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: #dbeafe;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.25rem;
+}
+
+.downloadBtn:hover {
+  background-color: #bfdbfe;
+  transform: scale(1.1);
+}
+
+.downloadBtn svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: #0284c7;
+}
+
+.downloadSpinner {
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 2px solid #e5e7eb;
+  border-top-color: #0284c7;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.iconSvg {
+  width: 1rem;
+  height: 1rem;
+  color: #22c55e;
+  stroke: currentColor;
+  fill: none;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.card:hover .title {
+  color: #15803d;
+}
+
+.description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: auto;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.25rem;
+  flex-grow: 1;
+}
+
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.metaDesc {
+  font-size: 0.8rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* Offline Badge */
+.offlineBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  color: #059669;
+  background: #d1fae5;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.offlineBadge:hover {
+  background: #a7f3d0;
+}
+
+.offlineBadge svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.footer {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  color: #22c55e;
+  font-weight: 500;
+}
+
+.footerText {
+  font-size: 0.875rem;
+}
+
+.footerSvg {
+  width: 1rem;
+  height: 1rem;
+  margin-left: 0.25rem;
+  stroke: currentColor;
+  fill: none;
+  transition: transform 0.2s ease;
+}
+
+.card:hover .footerSvg {
+  transform: translateX(0.25rem);
+}
+
+/* Edit Modal Overlay */
+.editModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.editModal {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  animation: slideUp 0.3s ease-out;
+}
+
+.editModalTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1rem;
+  margin-top: 0;
+}
+
+.editModalInput {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.editModalInput:focus {
+  outline: none;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.editModalActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.editModalCancel {
+  padding: 0.75rem 1.5rem;
+  background: white;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  color: #6b7280;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editModalCancel:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.editModalSave {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  border-radius: 0.5rem;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.3);
+}
+
+.editModalSave:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.3);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Download button ON state (file stored offline) */
+.downloadBtnOn {
+  background-color: #dcfce7 !important;
+  color: #16a34a !important;
+}
+
+.downloadBtnOn:hover {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+/* Dark Mode */
+[data-theme="dark"] .card {
+  background-color: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .card:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .title {
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .metaItem {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .metaDesc {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .editBtn {
+  background-color: #1e3a8a;
+}
+
+[data-theme="dark"] .editBtn:hover {
+  background-color: #1e40af;
+}
+
+[data-theme="dark"] .downloadBtn {
+  background-color: #1e3a8a;
+}
+
+[data-theme="dark"] .downloadBtn:hover {
+  background-color: #1e40af;
+}
+
+[data-theme="dark"] .downloadBtn svg {
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .offlineBadge {
+  background: #064e3b;
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .offlineBadge:hover {
+  background: #065f46;
+}
+
+[data-theme="dark"] .editModalOverlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .editModal {
+  background: #1f2937;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .editModalTitle {
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .editModalInput {
+  background: #111827;
+  color: #f3f4f6;
+  border-color: #374151;
+}
+
+[data-theme="dark"] .editModalInput:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+[data-theme="dark"] .editModalCancel {
+  background: #111827;
+  border-color: #374151;
+  color: #d1d5db;
+}
+
+[data-theme="dark"] .editModalCancel:hover {
+  background: #1f2937;
+  border-color: #4b5563;
+}
