@@ -17,7 +17,7 @@ const envPath = envCandidates.find(fs.existsSync)
 if (envPath) {
   dotenv.config({ path: envPath })
   console.log(`Loaded environment from ${envPath}`)
-  console.log(`Token value: ${process.env.VITE_APIFY_API_TOKEN || "NOT SET"}`)
+  console.log(`Token value: ${process.env.VITE_GROQ_API_KEY ? "SET" : "NOT SET"}`)
 } else {
   console.warn("No .env file found in current or parent directory.")
 }
@@ -28,7 +28,7 @@ const PORT = process.env.PORT || 5000
 app.use(cors())
 app.use(express.json())
 
-// Quiz generation endpoint
+// Quiz generation endpoint using Groq API
 app.post("/api/generate-quiz", async (req, res) => {
   const { fileContent, quizType, count } = req.body
 
@@ -36,213 +36,92 @@ app.post("/api/generate-quiz", async (req, res) => {
     return res.status(400).json({ error: "File content is required" })
   }
 
-  if (!process.env.VITE_APIFY_API_TOKEN) {
-    return res.status(500).json({ error: "Apify API token not configured" })
+  if (!process.env.VITE_GROQ_API_KEY) {
+    return res.status(500).json({ error: "Groq API token not configured" })
   }
 
-  const apiToken = process.env.VITE_APIFY_API_TOKEN
-  const limitedText = fileContent.slice(0, 30000)
+  const apiKey = process.env.VITE_GROQ_API_KEY
+  const limitedText = fileContent.slice(0, 20000)
 
   function buildPrompt(quizType, count) {
-    const base = `CRITICAL: Return ONLY a raw JSON array. No markdown, no code fences, no explanation. Start with [ and end with ].`
-    const schemas = {
-      multiple_choice: `Generate ${count} multiple-choice questions, each with 4 options (A-D).
-Schema: [{ "type": "multiple_choice", "question": "...", "options": ["A. ...", "B. ...", "C. ...", "D. ..."], "answer": <0-based index 0-3>, "explanation": "..." }]`,
-      true_false: `Generate ${count} true/false questions.
-Schema: [{ "type": "true_false", "question": "...", "answer": "True" or "False", "explanation": "..." }]`,
-      identification: `Generate ${count} identification questions where the student writes a specific word or phrase.
-Schema: [{ "type": "identification", "question": "...", "answer": "<exact answer>", "explanation": "..." }]`,
-      mixed: `Generate exactly ${count} questions as a mix: ~40% multiple_choice, ~30% true_false, ~30% identification.
-Multiple choice: { "type": "multiple_choice", "question": "...", "options": ["A...","B...","C...","D..."], "answer": <0-3>, "explanation": "..." }
-True/false: { "type": "true_false", "question": "...", "answer": "True" or "False", "explanation": "..." }
-Identification: { "type": "identification", "question": "...", "answer": "<exact>", "explanation": "..." }`
+    const typeInstructions = {
+      multiple_choice: `Generate ${count} multiple-choice questions with 4 options (A, B, C, D). Return only a JSON array with this schema:
+[{"type":"multiple_choice","question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"answer":0,"explanation":"..."}]`,
+      true_false: `Generate ${count} true/false questions. Return only a JSON array with this schema:
+[{"type":"true_false","question":"...","answer":"True","explanation":"..."}]`,
+      identification: `Generate ${count} identification/short-answer questions. Return only a JSON array with this schema:
+[{"type":"identification","question":"...","answer":"exact answer","explanation":"..."}]`,
+      mixed: `Generate ${count} questions mixing types: ~40% multiple-choice (4 options), ~30% true/false, ~30% short-answer. Return only a JSON array.`
     }
-    return `${schemas[quizType]}\n\n${base}`
-  }
-
-  function parseQuestionsFromOutput(responseData) {
-    const output = responseData.output ?? responseData.data?.output
-    if (Array.isArray(output)) return output
-    if (typeof output === "string") {
-      const match = output.match(/\[[\s\S]*\]/)
-      if (match) {
-        try {
-          return JSON.parse(match[0])
-        } catch (e) {
-          console.error("Unable to parse output JSON", e)
-        }
-      }
-    }
-    if (output?.questions && Array.isArray(output.questions)) return output.questions
-    return []
+    
+    return `Based on this content, ${typeInstructions[quizType]}\n\nContent:\n${limitedText}\n\nIMPORTANT: Return ONLY valid JSON, no markdown, no code blocks, no explanation.`
   }
 
   try {
     const prompt = buildPrompt(quizType, count)
+    
+    console.log("Starting quiz generation with Groq API...", { quizType, count, textLength: limitedText.length })
 
-    console.log("Starting quiz generation with Apify LLM...", {
-      textLength: limitedText.length,
-      quizType,
-      count
-    })
-
-    const actorId = "apify/openai-gpt-4-wrapper"
-    const runResponse = await fetch(
-      `https://api.apify.com/v2/acts/${actorId}/run-sync`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiToken}`
-        },
-        body: JSON.stringify({
-          prompt: `${prompt}\n\nContent to generate questions from:\n\n${limitedText}`,
-          maxTokens: 4000
-        })
-      }
-    )
-
-    if (runResponse.ok) {
-      const runData = await runResponse.json()
-      const questions = parseQuestionsFromOutput(runData)
-      if (questions.length > 0) {
-        console.log("Generated questions (count):", questions.length)
-        return res.json({ questions })
-      }
-      console.warn("Apify run-sync returned no questions, falling back to actor run.")
-    } else {
-      let errorMessage = `API error: ${runResponse.status}`
-      try {
-        const errorData = await runResponse.json()
-        errorMessage = errorData.error?.message || errorData.message || errorMessage
-        console.error("Apify API Error:", errorData)
-      } catch (e) {
-        const raw = await runResponse.text()
-        console.error("API Error Response:", raw)
-      }
-      console.warn("Falling back to standard Apify actor run due to run-sync failure:", errorMessage)
-    }
-
-    const fallbackActorId = process.env.APIFY_ACTOR_ID || "thescrapelab/apify-quiz-generator"
-    const startPayload = {
-      input: {
-        prompt: `${buildPrompt(quizType, count)}\n\nContent to generate questions from:\n\n${limitedText}`,
-        count
-      }
-    }
-
-    const startResponse = await fetch(`https://api.apify.com/v2/acts/${fallbackActorId}/runs`, {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiToken}`
+        Authorization: `Bearer ${apiKey}`
       },
-      body: JSON.stringify(startPayload)
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_completion_tokens: 2000
+      })
     })
 
-    if (!startResponse.ok) {
-      let errorMessage = `API error: ${startResponse.status}`
-      try {
-        const errorData = await startResponse.json()
-        errorMessage = errorData.error?.message || errorData.message || errorMessage
-        console.error("Apify API Error (start):", errorData)
-      } catch (e) {
-        const raw = await startResponse.text()
-        console.error("API Error Response (start):", raw)
-      }
-      return res.status(startResponse.status).json({ error: errorMessage })
-    }
-
-    const startData = await startResponse.json()
-    const runId = startData.data?.id
-    if (!runId) {
-      return res.status(500).json({ error: "Unable to start Apify actor run (no run id returned)." })
-    }
-
-    let completed = false
-    let questions = []
-    const maxWaitTime = 120000 // 2 minutes
-    const startTime = Date.now()
-
-    while (!completed && Date.now() - startTime < maxWaitTime) {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      const statusResponse = await fetch(`https://api.apify.com/v2/acts/${fallbackActorId}/runs/${runId}`, {
-        headers: { Authorization: `Bearer ${apiToken}` }
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("Groq API error:", response.status, errorText)
+      return res.status(response.status).json({ 
+        error: `Groq API error: ${response.status}. Check your API key and rate limits.` 
       })
-
-      if (!statusResponse.ok) {
-        console.error("Failed to fetch run status", await statusResponse.text())
-        break
-      }
-
-      const statusData = await statusResponse.json()
-      const status = statusData.data?.status
-      console.log("Poll status:", status)
-
-      if (status === "SUCCEEDED") {
-        completed = true
-        const datasetId = statusData.data?.defaultDatasetId
-
-        if (datasetId) {
-          const datasetResponse = await fetch(`https://api.apify.com/v2/datasets/${datasetId}/items`, {
-            headers: { Authorization: `Bearer ${apiToken}` }
-          })
-          if (datasetResponse.ok) {
-            const items = await datasetResponse.json()
-            if (Array.isArray(items) && items.length > 0) {
-              if (items[0].questions && Array.isArray(items[0].questions)) {
-                questions = items[0].questions
-              } else {
-                const text = items.map((i) => (typeof i === "string" ? i : JSON.stringify(i))).join("\n")
-                const match = text.match(/\[[\s\S]*\]/)
-                if (match) {
-                  try {
-                    questions = JSON.parse(match[0])
-                  } catch (e) {
-                    console.error("Failed to parse dataset results JSON", e)
-                  }
-                }
-              }
-            }
-          } else {
-            console.error("Failed to fetch dataset items", await datasetResponse.text())
-          }
-        }
-
-        if (!questions.length && statusData.data?.output) {
-          const out = statusData.data.output
-          if (typeof out === "string") {
-            const match = out.match(/\[[\s\S]*\]/)
-            if (match) {
-              try {
-                questions = JSON.parse(match[0])
-              } catch (e) {
-                console.error("Failed to parse output JSON", e)
-              }
-            }
-          } else if (Array.isArray(out)) {
-            questions = out
-          } else if (out.questions && Array.isArray(out.questions)) {
-            questions = out.questions
-          }
-        }
-
-        console.log("Generated questions (count):", questions.length)
-      } else if (status === "FAILED" || status === "ABORTED") {
-        return res.status(500).json({ error: `Quiz generation failed: ${statusData.data?.statusMessage || "Unknown error"}` })
-      }
     }
 
-    if (!completed) {
-      return res.status(500).json({ error: "Quiz generation timed out. Try again with fewer questions." })
+    const data = await response.json()
+    const content = data.choices?.[0]?.message?.content
+
+    if (!content) {
+      return res.status(500).json({ error: "No response content from Groq API" })
+    }
+
+    // Parse JSON from response
+    let questions = []
+    try {
+      // Try to extract JSON array from response
+      const jsonMatch = content.match(/\[[\s\S]*\]/)
+      if (jsonMatch) {
+        questions = JSON.parse(jsonMatch[0])
+      } else {
+        questions = JSON.parse(content)
+      }
+    } catch (parseError) {
+      console.error("Failed to parse response JSON:", content, parseError)
+      return res.status(500).json({ 
+        error: "Failed to parse questions from Groq response. Please try again." 
+      })
     }
 
     if (!Array.isArray(questions) || questions.length === 0) {
-      return res.status(500).json({ error: "Apify actor finished but returned no questions. Check actor output format or try a different actor." })
+      return res.status(500).json({ 
+        error: "No valid questions generated. Please try again." 
+      })
     }
 
+    console.log(`✓ Generated ${questions.length} questions`)
     return res.json({ questions })
+
   } catch (error) {
     console.error("Server error:", error)
     return res.status(500).json({ error: error?.message || "Internal server error" })
@@ -250,5 +129,7 @@ Identification: { "type": "identification", "question": "...", "answer": "<exact
 })
 
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`)
+  console.log(`\n✓ Server listening on port ${PORT}`)
+  console.log(`✓ Groq API quiz generation enabled`)
+  console.log(`✓ POST /api/generate-quiz ready for requests\n`)
 })

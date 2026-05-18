@@ -148,6 +148,79 @@ export class QuizEngine {
     return attempts.filter(a => a.status === 'completed')
   }
 
+  async getOngoingQuizzes(moduleId) {
+    try {
+      const allAttempts = await db.getAll('quizAttempts')
+      const quizzes = await db.getAll('quizzes')
+      
+      // Find all in-progress attempts for this module
+      const ongoingAttempts = allAttempts.filter(attempt => {
+        const quiz = quizzes.find(q => q.id === attempt.quizId)
+        return attempt.status === 'in_progress' && quiz && quiz.moduleId === moduleId
+      })
+
+      // Enrich with quiz details
+      return ongoingAttempts.map(attempt => {
+        const quiz = quizzes.find(q => q.id === attempt.quizId)
+        return {
+          attemptId: attempt.id,
+          quizId: attempt.quizId,
+          moduleId: quiz.moduleId,
+          title: quiz.title,
+          type: quiz.type,
+          totalQuestions: quiz.totalQuestions,
+          currentQuestion: attempt.answers.filter(a => a).length,
+          answeredCount: attempt.answers.filter(a => a).length,
+          startedAt: attempt.startTime,
+          status: 'in_progress'
+        }
+      })
+    } catch (error) {
+      console.warn('Error getting ongoing quizzes:', error)
+      return []
+    }
+  }
+
+  async resumeQuiz(attemptId) {
+    try {
+      const attempt = await db.get('quizAttempts', attemptId)
+      if (!attempt || attempt.status !== 'in_progress') {
+        throw new Error('Attempt not found or already completed')
+      }
+
+      const quiz = await db.get('quizzes', attempt.quizId)
+      if (!quiz) throw new Error('Quiz not found')
+
+      return {
+        attemptId: attempt.id,
+        quiz: quiz,
+        currentQuestion: attempt.answers.filter(a => a).length,
+        answers: attempt.answers || [],
+        score: attempt.score || 0
+      }
+    } catch (error) {
+      console.error('Error resuming quiz:', error)
+      throw error
+    }
+  }
+
+  async saveQuizProgress(attemptId, currentQuestion, answers, score) {
+    try {
+      const attempt = await db.get('quizAttempts', attemptId)
+      if (!attempt) throw new Error('Attempt not found')
+
+      attempt.answers = answers
+      attempt.score = score
+      attempt.lastUpdated = new Date().toISOString()
+
+      await db.update('quizAttempts', attempt)
+      return attempt
+    } catch (error) {
+      console.error('Error saving quiz progress:', error)
+      throw error
+    }
+  }
+
   async getUserQuizHistory(userId) {
     return await db.getByIndex('quizAttempts', 'userId', userId)
   }

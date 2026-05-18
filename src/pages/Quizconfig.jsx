@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar"
 import styles from "./QuizConfig.module.css"
 import { quizEngine } from "../services/quizEngine"
 import { saveQuizResult, getModuleFile, blobToFile } from "../services/db"
+import { db } from "../services/database"
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf"
 import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"
 
@@ -149,7 +150,18 @@ export default function QuizConfig() {
   const [score, setScore]             = useState(0)
   const [answers, setAnswers]         = useState([])
   const [quizId, setQuizId]           = useState(null)
+  const [attemptId, setAttemptId]     = useState(null)
   const [genError, setGenError]       = useState("")
+  const [ongoingQuizzes, setOngoingQuizzes] = useState([])
+
+  const refreshOngoingQuizzes = async (moduleId) => {
+    try {
+      const ongoing = await quizEngine.getOngoingQuizzes(moduleId)
+      setOngoingQuizzes(ongoing)
+    } catch (err) {
+      console.warn('Failed to load ongoing quizzes:', err)
+    }
+  }
 
   useEffect(() => {
     const saved = localStorage.getItem("uploadedModules")
@@ -162,6 +174,8 @@ export default function QuizConfig() {
         getModuleFile(current.id)
           .then(record => setSavedFileRecord(record))
           .catch(() => setSavedFileRecord(null))
+
+        refreshOngoingQuizzes(current.id)
       }
     }
   }, [id])
@@ -202,6 +216,19 @@ export default function QuizConfig() {
           totalQuestions: qs.length,
         })
         setQuizId(created.id)
+
+        // Create an attempt for this quiz
+        const attempt = {
+          id: Date.now(),
+          quizId: created.id,
+          startTime: new Date().toISOString(),
+          status: 'in_progress',
+          answers: [],
+          score: 0
+        }
+        await db.add('quizAttempts', attempt)
+        setAttemptId(attempt.id)
+        refreshOngoingQuizzes(module.id)
       } catch (saveError) {
         console.warn("Could not persist quiz definition:", saveError)
       }
@@ -209,6 +236,28 @@ export default function QuizConfig() {
       console.error(err)
       setGenError(err.message || "Failed to generate quiz. Please try again.")
       setPhase("config")
+    }
+  }
+
+  const handleResumeQuiz = async (ongoingQuiz) => {
+    try {
+      setGenError("")
+      const resumed = await quizEngine.resumeQuiz(ongoingQuiz.attemptId)
+      
+      setQuizId(resumed.quiz.id)
+      setAttemptId(ongoingQuiz.attemptId)
+      setQuestions(resumed.quiz.questions)
+      setCurrentQ(resumed.currentQuestion)
+      setScore(resumed.score || 0)
+      setAnswers(resumed.answers || [])
+      setSelected(null)
+      setIdentInput("")
+      setAnswered(false)
+      setPhase("active")
+      refreshOngoingQuizzes(module.id)
+    } catch (err) {
+      console.error(err)
+      setGenError("Failed to resume quiz: " + err.message)
     }
   }
 
@@ -220,6 +269,18 @@ export default function QuizConfig() {
         setPhase("finished")
         const scorePercent = questions.length ? Math.round((score / questions.length) * 100) : 0
         try {
+          // Mark attempt as completed
+          if (attemptId) {
+            const attempt = await db.get('quizAttempts', attemptId)
+            if (attempt) {
+              attempt.status = 'completed'
+              attempt.score = score
+              attempt.answers = answers
+              attempt.completedAt = new Date().toISOString()
+              await db.update('quizAttempts', attempt)
+            }
+          }
+
           await saveQuizResult({
             moduleId: module.id,
             moduleName: module.title,
@@ -232,6 +293,7 @@ export default function QuizConfig() {
         } catch (err) {
           console.warn("Failed to save quiz result:", err)
         }
+        await refreshOngoingQuizzes(module.id)
         return
       }
       setCurrentQ(c => c + 1); setSelected(null); setIdentInput(""); setAnswered(false)
@@ -245,9 +307,19 @@ export default function QuizConfig() {
       correct = identInput.trim().toLowerCase() === String(q.answer).trim().toLowerCase()
 
     const nextScore = correct ? score + 1 : score
-    setAnswers(a => [...a, { selected, identInput, correct }])
+    const newAnswers = [...answers, { selected, identInput, correct }]
+    setAnswers(newAnswers)
     setScore(nextScore)
     setAnswered(true)
+
+    // Auto-save progress
+    if (attemptId) {
+      try {
+        await quizEngine.saveQuizProgress(attemptId, currentQ, newAnswers, nextScore)
+      } catch (err) {
+        console.warn("Failed to auto-save progress:", err)
+      }
+    }
   }
 
   const canSubmit = q?.type === "identification"
@@ -290,6 +362,38 @@ export default function QuizConfig() {
         {/* ── CONFIG ── */}
         {(phase === "config" || phase === "generating") && (
           <div className={styles.configPanel}>
+
+            {/* Ongoing Quizzes */}
+            {ongoingQuizzes.length > 0 && (
+              <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>📝 Ongoing Quizzes</h2>
+                <div className={styles.ongoingList}>
+                  {ongoingQuizzes.map(quiz => (
+                    <div key={quiz.attemptId} className={styles.ongoingCard}>
+                      <div className={styles.ongoingInfo}>
+                        <div>
+                          <p className={styles.ongoingType}>
+                            {QUIZ_TYPES.find(t => t.id === quiz.type)?.icon} {QUIZ_TYPES.find(t => t.id === quiz.type)?.label}
+                          </p>
+                          <p className={styles.ongoingProgress}>
+                            Question {quiz.currentQuestion + 1} of {quiz.totalQuestions}
+                          </p>
+                        </div>
+                        <div className={styles.ongoingBar}>
+                          <div className={styles.ongoingBarFill} style={{ width: `${(quiz.currentQuestion / quiz.totalQuestions) * 100}%` }} />
+                        </div>
+                      </div>
+                      <button
+                        className={styles.resumeBtn}
+                        onClick={() => handleResumeQuiz(quiz)}
+                      >
+                        Resume →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* Step 1 – File Source */}
             <section className={styles.section}>

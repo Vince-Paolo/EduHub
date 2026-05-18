@@ -534,7 +534,100 @@
 }
 .rOutline:hover { background: #f0fdf4; }
 
+/* ── Ongoing Quizzes ── */
+.ongoingList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ongoingCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.6rem;
+  transition: all 0.2s;
+}
+
+.ongoingCard:hover {
+  border-color: #22c55e;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+}
+
+.ongoingInfo {
+  flex: 1;
+}
+
+.ongoingType {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.ongoingProgress {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.ongoingBar {
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ongoingBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #0ea5e9);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.resumeBtn {
+  padding: 0.6rem 1.2rem;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  border: none;
+  border-radius: 0.4rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: 1rem;
+  transition: all 0.2s;
+}
+
+.resumeBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);
+}
+
 /* ── Dark mode ── */
+[data-theme="dark"] .ongoingCard {
+  background: #111827;
+  border-color: #374151;
+}
+
+[data-theme="dark"] .ongoingCard:hover {
+  border-color: #22c55e;
+}
+
+[data-theme="dark"] .ongoingType {
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .ongoingProgress {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .ongoingBar {
+  background: #374151;
+}
+
 [data-theme="dark"] .page {
   background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #2d1b69 100%);
 }
