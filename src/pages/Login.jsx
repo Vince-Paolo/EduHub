@@ -18,8 +18,15 @@ export default function Login() {
     setLoading(true)
 
     try {
-      await signInWithEmailAndPassword(auth, email, password)
-      // Firebase session is handled automatically — no localStorage needed
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      // Create a secure HTTP-only session cookie on the server
+      const idToken = await userCredential.user.getIdToken()
+      await fetch("/sessionLogin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ idToken })
+      })
       navigate("/dashboard")
     } catch (err) {
       // Map Firebase error codes to friendly messages

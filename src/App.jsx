@@ -9,6 +9,7 @@ import Profile from './pages/Profile'
 import Quiz from './pages/Quiz'
 import Register from './pages/Register'
 import QuizConfig from './pages/QuizConfig'
+import Groups from './pages/Groups'
 import OfflineLessonViewer from './components/OfflineLessonViewer'
 
 function App() {
@@ -88,6 +89,7 @@ function App() {
         <Route path="/quiz"          element={<Quiz />} />
         <Route path="/register"      element={<Register />} />
         <Route path="/quiz-config/:id"    element={<QuizConfig />} />
+        <Route path="/groups"        element={<Groups />} />
         <Route path="/offline/:id"        element={<OfflineLessonViewer />} />
       </Routes>
     </>

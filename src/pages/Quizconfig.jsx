@@ -101,12 +101,12 @@ async function callClaude(file, quizType, count) {
       throw new Error("You must be signed in to generate quizzes.")
     }
 
-    const idToken = await currentUser.getIdToken()
+    // Use secure HTTP-only session cookie created at login.
     const response = await fetch("/api/generate-quiz", {
       method: "POST",
+      credentials: "include",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         fileContent: text,
