@@ -1,0 +1,271 @@
+/* components/AnnouncementBoard.module.css */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.newBtn {
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.newBtn:hover {
+  background-color: var(--primary-dark);
+}
+
+.form {
+  padding: 1.5rem;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.titleInput {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.titleInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.contentInput {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.contentInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.formFooter {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.prioritySelect {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.prioritySelect:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.submitBtn {
+  padding: 0.75rem 1.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.submitBtn:hover {
+  background-color: var(--primary-dark);
+}
+
+.announcements {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.announcement {
+  padding: 1.25rem;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid #8b5cf6;
+  border-radius: 8px;
+  position: relative;
+}
+
+.announcement.priorityUrgent {
+  border-left-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.announcement.priorityHigh {
+  border-left-color: #f59e0b;
+  background-color: rgba(245, 158, 11, 0.05);
+}
+
+.announcement.priorityNormal {
+  border-left-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.announcement.priorityLow {
+  border-left-color: #10b981;
+  background-color: rgba(16, 185, 129, 0.05);
+}
+
+.announcement.unread {
+  font-weight: 500;
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+}
+
+.announceHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+  gap: 1rem;
+}
+
+.titleSection {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.titleSection h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.priorityBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.announcement.priorityUrgent .priorityBadge {
+  background-color: #fecaca;
+  color: #991b1b;
+}
+
+.announcement.priorityHigh .priorityBadge {
+  background-color: #fed7aa;
+  color: #92400e;
+}
+
+.announcement.priorityNormal .priorityBadge {
+  background-color: #bfdbfe;
+  color: #1e3a8a;
+}
+
+.announcement.priorityLow .priorityBadge {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 1.5rem;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.announcement:hover .deleteBtn {
+  opacity: 1;
+}
+
+.deleteBtn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+}
+
+.content {
+  margin: 0.75rem 0;
+  color: var(--text-color);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.markReadBtn {
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  align-self: flex-start;
+}
+
+.markReadBtn:hover {
+  background-color: var(--primary-dark);
+}
+
+.emptyState {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.loading {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+}

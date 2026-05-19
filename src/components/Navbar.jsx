@@ -50,6 +50,9 @@ export default function Navbar({ onUpload = () => {} }) {
               <a href="/quizzes" className={styles.navLink}>
                 Quizzes
               </a>
+              <a href="/groups" className={styles.navLink}>
+                Groups
+              </a>
               <a href="/profile" className={styles.navLink}>
                 Profile
               </a>

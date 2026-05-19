@@ -6,10 +6,13 @@ import './styles/theme.css'
 
 
 import { BrowserRouter } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
 
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </BrowserRouter>
 )

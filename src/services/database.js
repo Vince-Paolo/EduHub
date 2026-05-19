@@ -1,6 +1,6 @@
 // services/database.js
 const DB_NAME = 'EduHubDB'
-const DB_VERSION = 2
+const DB_VERSION = 3
 
 class DatabaseService {
   constructor() {
@@ -57,6 +57,68 @@ class DatabaseService {
         if (!db.objectStoreNames.contains('offlineContent')) {
           const contentStore = db.createObjectStore('offlineContent', { keyPath: 'id' })
           contentStore.createIndex('moduleId', 'moduleId', { unique: false })
+        }
+
+        // Groups store (for group study)
+        if (!db.objectStoreNames.contains('groups')) {
+          const groupStore = db.createObjectStore('groups', { keyPath: 'id' })
+          groupStore.createIndex('createdBy', 'createdBy', { unique: false })
+          groupStore.createIndex('createdAt', 'createdAt', { unique: false })
+        }
+
+        // Group members store
+        if (!db.objectStoreNames.contains('groupMembers')) {
+          const memberStore = db.createObjectStore('groupMembers', { keyPath: 'id' })
+          memberStore.createIndex('groupId', 'groupId', { unique: false })
+          memberStore.createIndex('userId', 'userId', { unique: false })
+        }
+
+        // Chat messages store
+        if (!db.objectStoreNames.contains('chatMessages')) {
+          const chatStore = db.createObjectStore('chatMessages', { keyPath: 'id' })
+          chatStore.createIndex('groupId', 'groupId', { unique: false })
+          chatStore.createIndex('createdAt', 'createdAt', { unique: false })
+          chatStore.createIndex('userId', 'userId', { unique: false })
+        }
+
+        // Discussion threads store
+        if (!db.objectStoreNames.contains('discussionThreads')) {
+          const threadStore = db.createObjectStore('discussionThreads', { keyPath: 'id' })
+          threadStore.createIndex('groupId', 'groupId', { unique: false })
+          threadStore.createIndex('createdAt', 'createdAt', { unique: false })
+          threadStore.createIndex('authorId', 'authorId', { unique: false })
+        }
+
+        // Discussion posts/replies store
+        if (!db.objectStoreNames.contains('discussionPosts')) {
+          const postStore = db.createObjectStore('discussionPosts', { keyPath: 'id' })
+          postStore.createIndex('threadId', 'threadId', { unique: false })
+          postStore.createIndex('authorId', 'authorId', { unique: false })
+          postStore.createIndex('createdAt', 'createdAt', { unique: false })
+        }
+
+        // Announcements store
+        if (!db.objectStoreNames.contains('announcements')) {
+          const announcementStore = db.createObjectStore('announcements', { keyPath: 'id' })
+          announcementStore.createIndex('groupId', 'groupId', { unique: false })
+          announcementStore.createIndex('createdAt', 'createdAt', { unique: false })
+          announcementStore.createIndex('authorId', 'authorId', { unique: false })
+        }
+
+        // Shared files store
+        if (!db.objectStoreNames.contains('sharedFiles')) {
+          const fileStore = db.createObjectStore('sharedFiles', { keyPath: 'id' })
+          fileStore.createIndex('groupId', 'groupId', { unique: false })
+          fileStore.createIndex('uploadedBy', 'uploadedBy', { unique: false })
+          fileStore.createIndex('uploadedAt', 'uploadedAt', { unique: false })
+        }
+
+        // Shared notes store
+        if (!db.objectStoreNames.contains('sharedNotes')) {
+          const noteStore = db.createObjectStore('sharedNotes', { keyPath: 'id' })
+          noteStore.createIndex('groupId', 'groupId', { unique: false })
+          noteStore.createIndex('authorId', 'authorId', { unique: false })
+          noteStore.createIndex('createdAt', 'createdAt', { unique: false })
         }
       }
     })
