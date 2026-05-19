@@ -1,22 +1,48 @@
 import { useNavigate } from "react-router-dom"
 import { useState } from "react"
+import { signInWithEmailAndPassword } from "firebase/auth"
+import { auth } from "../firebase"
 import logoHorizontal from "../assets/logo-horizontal.svg"
 import styles from "./Login.module.css"
 
 export default function Login() {
   const navigate = useNavigate()
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
-    if (username.trim()) {
-      localStorage.setItem("currentUser", JSON.stringify({
-        name: username,
-        email: `${username}@eduhub.com`,
-        loginTime: new Date().toISOString()
-      }))
+    setError("")
+    setLoading(true)
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password)
+      // Firebase session is handled automatically — no localStorage needed
       navigate("/dashboard")
+    } catch (err) {
+      // Map Firebase error codes to friendly messages
+      switch (err.code) {
+        case "auth/user-not-found":
+        case "auth/wrong-password":
+        case "auth/invalid-credential":
+          setError("Invalid email or password.")
+          break
+        case "auth/invalid-email":
+          setError("Please enter a valid email address.")
+          break
+        case "auth/too-many-requests":
+          setError("Too many attempts. Please try again later.")
+          break
+        case "auth/user-disabled":
+          setError("This account has been disabled.")
+          break
+        default:
+          setError("Something went wrong. Please try again.")
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -29,20 +55,29 @@ export default function Login() {
           <p className={styles.subtitle}>Learn anywhere, anytime</p>
         </div>
 
+        {/* Error Banner */}
+        {error && (
+          <div className={styles.errorBanner}>
+            {error}
+          </div>
+        )}
+
         {/* Form */}
         <form onSubmit={handleLogin} className={styles.form}>
-          {/* Username */}
+          {/* Email */}
           <div className={styles.formGroup}>
-            <label htmlFor="username" className={styles.label}>
-              Username
+            <label htmlFor="email" className={styles.label}>
+              Email
             </label>
             <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
               className={styles.input}
+              required
+              autoComplete="email"
               onFocus={(e) => {
                 e.target.style.borderColor = "#22c55e"
                 e.target.style.backgroundColor = "white"
@@ -68,6 +103,8 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               className={styles.input}
+              required
+              autoComplete="current-password"
               onFocus={(e) => {
                 e.target.style.borderColor = "#22c55e"
                 e.target.style.backgroundColor = "white"
@@ -81,20 +118,34 @@ export default function Login() {
             />
           </div>
 
+          {/* Forgot Password */}
+          <div className={styles.forgotPassword}>
+            <button
+              type="button"
+              className={styles.forgotBtn}
+              onClick={() => navigate("/forgot-password")}
+            >
+              Forgot password?
+            </button>
+          </div>
+
           {/* Sign In Button */}
           <button
             type="submit"
             className={styles.submitBtn}
+            disabled={loading}
             onMouseEnter={(e) => {
-              e.target.style.transform = "translateY(-2px)"
-              e.target.style.boxShadow = "0 10px 15px -3px rgba(34, 197, 94, 0.3)"
+              if (!loading) {
+                e.target.style.transform = "translateY(-2px)"
+                e.target.style.boxShadow = "0 10px 15px -3px rgba(34, 197, 94, 0.3)"
+              }
             }}
             onMouseLeave={(e) => {
               e.target.style.transform = "translateY(0)"
               e.target.style.boxShadow = "0 4px 6px -1px rgba(34, 197, 94, 0.3)"
             }}
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
@@ -107,19 +158,13 @@ export default function Login() {
 
         {/* Sign Up */}
         <div className={styles.signUpSection}>
-          <p className={styles.signUpText}>
-            Don't have an account?
-          </p>
+          <p className={styles.signUpText}>Don't have an account?</p>
           <button
             type="button"
             className={styles.signUpBtn}
             onClick={() => navigate("/register")}
-            onMouseEnter={(e) => {
-              e.target.style.background = "#f0fdf4"
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = "white"
-            }}
+            onMouseEnter={(e) => { e.target.style.background = "#f0fdf4" }}
+            onMouseLeave={(e) => { e.target.style.background = "white" }}
           >
             Create Account
           </button>

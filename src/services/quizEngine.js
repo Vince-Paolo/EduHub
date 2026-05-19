@@ -224,6 +224,53 @@ export class QuizEngine {
   async getUserQuizHistory(userId) {
     return await db.getByIndex('quizAttempts', 'userId', userId)
   }
+
+  async getAllOngoingQuizzes() {
+    try {
+      const allAttempts = await db.getAll('quizAttempts')
+      const quizzes = await db.getAll('quizzes')
+      
+      // Find all in-progress attempts
+      const ongoingAttempts = allAttempts.filter(attempt => attempt.status === 'in_progress')
+
+      // Enrich with quiz details
+      return ongoingAttempts.map(attempt => {
+        const quiz = quizzes.find(q => q.id === attempt.quizId)
+        return {
+          attemptId: attempt.id,
+          quizId: attempt.quizId,
+          moduleId: quiz?.moduleId,
+          title: quiz?.title || 'Unknown Quiz',
+          type: quiz?.type || 'mixed',
+          totalQuestions: quiz?.totalQuestions || 0,
+          currentQuestion: attempt.answers.filter(a => a).length,
+          answeredCount: attempt.answers.filter(a => a).length,
+          startedAt: attempt.startTime,
+          status: 'in_progress'
+        }
+      }).sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt))
+    } catch (error) {
+      console.warn('Error getting all ongoing quizzes:', error)
+      return []
+    }
+  }
+
+  async cancelQuiz(attemptId) {
+    try {
+      const attempt = await db.get('quizAttempts', attemptId)
+      if (!attempt) throw new Error('Attempt not found')
+
+      // Mark as cancelled instead of deleting
+      attempt.status = 'cancelled'
+      attempt.cancelledAt = new Date().toISOString()
+
+      await db.update('quizAttempts', attempt)
+      return attempt
+    } catch (error) {
+      console.error('Error cancelling quiz:', error)
+      throw error
+    }
+  }
 }
 
 export const quizEngine = new QuizEngine()

@@ -496,6 +496,57 @@
   border-bottom-color: #374151;
 }
 
+[data-theme="dark"] .userName {
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .userEmail {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .avatar {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.5);
+}
+
+[data-theme="dark"] .infoValue {
+  background: #1f2937;
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .achievementItem {
+  background: #1f2937;
+}
+
+[data-theme="dark"] .achievementItem:hover {
+  background: #111827;
+}
+
+[data-theme="dark"] .achievementName {
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .achievementDate {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .activityItem {
+  border-bottom-color: #374151;
+}
+
+[data-theme="dark"] .activityTitle {
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .activityTime {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .activityBadge {
+  background: #22c55e;
+  color: white;
+}
+
 [data-theme="dark"] .infoLabel {
   color: #d1d5db;
 }
