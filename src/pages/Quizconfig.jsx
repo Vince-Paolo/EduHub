@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import Navbar from "../components/Navbar"
+import { auth } from "../firebase"
 import styles from "./QuizConfig.module.css"
 import { quizEngine } from "../services/quizEngine"
 import { saveQuizResult, getModuleFile, blobToFile } from "../services/db"
@@ -95,10 +96,17 @@ async function callClaude(file, quizType, count) {
 
   // Call backend endpoint via same-origin /api path
   try {
+    const currentUser = auth.currentUser
+    if (!currentUser) {
+      throw new Error("You must be signed in to generate quizzes.")
+    }
+
+    const idToken = await currentUser.getIdToken()
     const response = await fetch("/api/generate-quiz", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`
       },
       body: JSON.stringify({
         fileContent: text,

@@ -232,6 +232,94 @@
   font-size: 1rem;
 }
 
+/* Section Titles */
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1rem;
+  margin-top: 0;
+}
+
+.ongoingSection {
+  margin-bottom: 2rem;
+}
+
+.completedSection {
+  margin-top: 2rem;
+}
+
+/* Progress Bar */
+.progressSection {
+  margin-bottom: 1rem;
+}
+
+.progressBar {
+  width: 100%;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #0ea5e9, #06b6d4);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.progressText {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Quiz Actions */
+.quizActions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.actionBtn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.4rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.resumeBtn {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: white;
+  flex: 1;
+  min-width: 120px;
+}
+
+.resumeBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);
+}
+
+.cancelBtn {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  flex: 0 1 auto;
+  padding: 0.5rem 0.8rem;
+}
+
+.cancelBtn:hover {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .mainTitle {
@@ -319,6 +407,30 @@
 
 [data-theme="dark"] .emptyDesc {
   color: #9ca3af;
+}
+
+[data-theme="dark"] .sectionTitle {
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .progressBar {
+  background: #374151;
+}
+
+[data-theme="dark"] .progressText {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .cancelBtn {
+  background: #374151;
+  color: #d1d5db;
+  border-color: #4b5563;
+}
+
+[data-theme="dark"] .cancelBtn:hover {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
 }
 
 [data-theme="dark"] .quizCard {

@@ -3,6 +3,7 @@ import path from "path"
 import express from "express"
 import cors from "cors"
 import dotenv from "dotenv"
+import admin from "firebase-admin"
 
 const app = express()
 const cwd = process.cwd()
@@ -22,14 +23,56 @@ if (envPath) {
   console.warn("No .env file found in current or parent directory.")
 }
 
+const hasFirebaseAdminConfig = Boolean(
+  process.env.FIREBASE_PROJECT_ID &&
+  process.env.FIREBASE_CLIENT_EMAIL &&
+  process.env.FIREBASE_PRIVATE_KEY
+)
+
+if (!hasFirebaseAdminConfig) {
+  console.warn("Firebase Admin config is not fully provided. Backend auth verification will fail until FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are configured.")
+}
+
+if (hasFirebaseAdminConfig) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
+    })
+  })
+}
+
 const PORT = process.env.PORT || 5000
 
 // Middleware
 app.use(cors())
 app.use(express.json())
 
+const authenticate = async (req, res, next) => {
+  if (!hasFirebaseAdminConfig) {
+    return res.status(500).json({ error: "Server auth is not configured." })
+  }
+
+  const authHeader = req.headers.authorization || ""
+  const idToken = authHeader.startsWith("Bearer ") ? authHeader.split("Bearer ")[1] : null
+
+  if (!idToken) {
+    return res.status(401).json({ error: "Unauthorized. Missing Firebase ID token." })
+  }
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken)
+    req.user = decodedToken
+    next()
+  } catch (error) {
+    console.error("Firebase token verification failed:", error)
+    return res.status(401).json({ error: "Unauthorized. Invalid or expired token." })
+  }
+}
+
 // Quiz generation endpoint using Groq API
-app.post("/api/generate-quiz", async (req, res) => {
+app.post("/api/generate-quiz", authenticate, async (req, res) => {
   const { fileContent, quizType, count } = req.body
 
   if (!fileContent) {
