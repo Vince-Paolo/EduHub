@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { db } from './services/database'
+import PrivateRoute from './components/PrivateRoute'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Modules from './pages/Modules'
@@ -82,15 +83,15 @@ function App() {
       )}
       <Routes>
         <Route path="/"              element={<Login />} />
-        <Route path="/dashboard"     element={<Dashboard />} />
-        <Route path="/modules"       element={<Modules />} />
-        <Route path="/quizzes"       element={<Quizzes />} />
-        <Route path="/profile"       element={<Profile />} />
-        <Route path="/quiz"          element={<Quiz />} />
+        <Route path="/dashboard"     element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/modules"       element={<PrivateRoute><Modules /></PrivateRoute>} />
+        <Route path="/quizzes"       element={<PrivateRoute><Quizzes /></PrivateRoute>} />
+        <Route path="/profile"       element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/quiz"          element={<PrivateRoute><Quiz /></PrivateRoute>} />
         <Route path="/register"      element={<Register />} />
-        <Route path="/quiz-config/:id"    element={<QuizConfig />} />
-        <Route path="/groups"        element={<Groups />} />
-        <Route path="/offline/:id"        element={<OfflineLessonViewer />} />
+        <Route path="/quiz-config/:id"    element={<PrivateRoute><QuizConfig /></PrivateRoute>} />
+        <Route path="/groups"        element={<PrivateRoute><Groups /></PrivateRoute>} />
+        <Route path="/offline/:id"        element={<PrivateRoute><OfflineLessonViewer /></PrivateRoute>} />
       </Routes>
     </>
   )

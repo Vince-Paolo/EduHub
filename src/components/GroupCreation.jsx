@@ -26,6 +26,11 @@ export default function GroupCreation({ onGroupCreated, onCancel }) {
     e.preventDefault()
     setError('')
 
+    if (!user?.uid) {
+      setError('You must be logged in to create a group.')
+      return
+    }
+
     if (!formData.name.trim()) {
       setError('Group name is required')
       return

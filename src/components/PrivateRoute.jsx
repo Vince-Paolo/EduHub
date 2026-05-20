@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext"
 export default function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
 
-  // Still checking Firebase session — render nothing (or a spinner)
+  // Still checking authentication status — render nothing (or a spinner)
   if (loading) {
     return (
       <div style={{

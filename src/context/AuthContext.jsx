@@ -2,8 +2,6 @@
 // Provides auth state globally across your app
 
 import { createContext, useContext, useEffect, useState } from "react"
-import { onAuthStateChanged, signOut } from "firebase/auth"
-import { auth } from "../firebase"
 import { initSyncQueue, teardownSyncQueue } from "../services/syncQueue"
 
 const AuthContext = createContext(null)
@@ -12,35 +10,83 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(undefined) // undefined = loading, null = logged out
 
   useEffect(() => {
-    // Firebase listener — fires on login, logout, and page refresh
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser ?? null)
-      
-      // Initialize sync queue on login, teardown on logout
-      if (firebaseUser?.uid) {
-        console.info('[AuthContext] User logged in — initializing sync queue')
-        initSyncQueue(firebaseUser.uid)
-      } else {
-        console.info('[AuthContext] User logged out — tearing down sync queue')
+    async function checkSession() {
+      try {
+        const response = await fetch('/auth/me', { credentials: 'include' })
+        if (!response.ok) {
+          setUser(null)
+          teardownSyncQueue()
+          return
+        }
+
+        const data = await response.json()
+        if (data.user) {
+          setUser(data.user)
+          initSyncQueue(data.user.uid)
+        } else {
+          setUser(null)
+          teardownSyncQueue()
+        }
+      } catch (error) {
+        console.error('[AuthContext] Session check failed:', error)
+        setUser(null)
         teardownSyncQueue()
       }
-    })
-    return unsubscribe // cleanup on unmount
+    }
+
+    checkSession()
   }, [])
 
-  const logout = () => signOut(auth)
-  // Clear server session cookie as well
+  const login = async (email, password) => {
+    const response = await fetch('/login', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}))
+      throw new Error(payload.error || 'Login failed.')
+    }
+
+    const data = await response.json()
+    setUser(data.user)
+    initSyncQueue(data.user.uid)
+    return data.user
+  }
+
+  const register = async (fullName, username, email, password) => {
+    const response = await fetch('/register', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fullName, username, email, password })
+    })
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}))
+      throw new Error(payload.error || 'Registration failed.')
+    }
+
+    const data = await response.json()
+    setUser(data.user)
+    initSyncQueue(data.user.uid)
+    return data.user
+  }
+
   const logoutSecure = async () => {
     try {
-      await fetch('/sessionLogout', { method: 'POST', credentials: 'include' })
+      await fetch('/logout', { method: 'POST', credentials: 'include' })
     } catch (e) {
-      // ignore
+      // ignore network error
     }
-    return signOut(auth)
+    teardownSyncQueue()
+    setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, logout: logoutSecure, loading: user === undefined }}>
+    <AuthContext.Provider value={{ user, login, register, logout: logoutSecure, loading: user === undefined }}>
       {children}
     </AuthContext.Provider>
   )

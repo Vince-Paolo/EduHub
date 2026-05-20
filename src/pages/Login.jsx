@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import { useState } from "react"
-import { signInWithEmailAndPassword } from "firebase/auth"
-import { auth } from "../firebase"
+import { useAuth } from "../context/AuthContext"
 import logoHorizontal from "../assets/logo-horizontal.svg"
 import styles from "./Login.module.css"
 
@@ -12,42 +11,18 @@ export default function Login() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  const { login } = useAuth()
+
   const handleLogin = async (e) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      // Create a secure HTTP-only session cookie on the server
-      const idToken = await userCredential.user.getIdToken()
-      await fetch("/sessionLogin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ idToken })
-      })
+      await login(email, password)
       navigate("/dashboard")
     } catch (err) {
-      // Map Firebase error codes to friendly messages
-      switch (err.code) {
-        case "auth/user-not-found":
-        case "auth/wrong-password":
-        case "auth/invalid-credential":
-          setError("Invalid email or password.")
-          break
-        case "auth/invalid-email":
-          setError("Please enter a valid email address.")
-          break
-        case "auth/too-many-requests":
-          setError("Too many attempts. Please try again later.")
-          break
-        case "auth/user-disabled":
-          setError("This account has been disabled.")
-          break
-        default:
-          setError("Something went wrong. Please try again.")
-      }
+      setError(err.message || "Invalid email or password.")
     } finally {
       setLoading(false)
     }
