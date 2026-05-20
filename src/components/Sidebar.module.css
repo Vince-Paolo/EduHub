@@ -1,3 +1,4 @@
+/* components/Sidebar.module.css */
 /* Sidebar Styles */
 .sidebar {
   position: fixed;
@@ -76,7 +77,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.5rem;
+  padding: 0.875rem 1.5rem;
   background: none;
   border: none;
   color: white;
@@ -102,9 +103,17 @@
   flex: 1;
 }
 
+/* Active state for current page */
+.menuItem.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-left: 3px solid white;
+  padding-left: calc(1.5rem - 3px);
+}
+
 .footer {
   padding: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: auto;
 }
 
 .logoutMenuBtn {
@@ -112,10 +121,10 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem;
+  padding: 0.875rem 1rem;
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   border: 1px solid #991b1b;
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
   color: white;
   font-size: 1rem;
   font-weight: 500;
@@ -136,6 +145,7 @@
   flex-shrink: 0;
 }
 
+/* Dark Mode Styles */
 [data-theme="dark"] .sidebar {
   background: linear-gradient(135deg, #0a3d1a 0%, #14532d 100%);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
@@ -150,9 +160,45 @@
   }
 }
 
+/* Custom scrollbar for sidebar */
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
 @media (max-width: 768px) {
   .sidebar {
     width: 240px;
     left: -240px;
+  }
+
+  .menuItem {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  .menuItem:hover {
+    padding-left: 1.5rem;
+  }
+
+  .header {
+    padding: 1.25rem;
+  }
+
+  .title {
+    font-size: 1.125rem;
   }
 }

@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { collaborationService } from '../services/collaborationService'
+import Navbar from '../components/Navbar'
+import Sidebar from '../components/Sidebar'
 import GroupList from '../components/GroupList'
 import GroupCreation from '../components/GroupCreation'
 import GroupChat from '../components/GroupChat'
@@ -17,13 +19,17 @@ export default function Groups() {
   const [activeTab, setActiveTab] = useState('chat')
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
     loadGroups()
   }, [user])
 
   const loadGroups = async () => {
-    if (!user?.uid) return
+    if (!user?.uid) {
+      setLoading(false)
+      return
+    }
     try {
       setLoading(true)
       const userGroups = await collaborationService.getUserGroups(user.uid)
@@ -57,89 +63,131 @@ export default function Groups() {
     }
   }
 
+  const handleUploadClick = () => {
+    // Handle upload module click - can be implemented as needed
+    console.log('Upload module clicked')
+  }
+
   if (loading) {
-    return <div className={styles.loading}>Loading groups...</div>
+    return (
+      <>
+        <Navbar onUpload={handleUploadClick} />
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner}></div>
+          <p>Loading your groups...</p>
+        </div>
+      </>
+    )
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.sidebar}>
-        <div className={styles.headerSection}>
-          <h2>Groups</h2>
-          <button 
-            className={styles.createBtn}
-            onClick={() => setShowCreateModal(true)}
-          >
-            + New Group
-          </button>
-        </div>
-        
-        <GroupList 
-          groups={groups}
-          selectedGroup={selectedGroup}
-          onSelectGroup={setSelectedGroup}
-          onDeleteGroup={handleGroupDeleted}
-        />
-      </div>
-
-      <div className={styles.mainContent}>
-        {selectedGroup ? (
-          <>
-            <div className={styles.header}>
-              <div className={styles.groupInfo}>
-                <h1>{selectedGroup.name}</h1>
-                <p>{selectedGroup.description}</p>
-              </div>
-            </div>
-
-            <div className={styles.tabs}>
+    <>
+      <Navbar onUpload={handleUploadClick} />
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+        onUploadClick={handleUploadClick}
+      />
+      
+      <div className={styles.mainLayout}>
+        <div className={styles.container}>
+          <div className={styles.sidebar}>
+            <div className={styles.headerSection}>
+              <h2>My Groups</h2>
               <button 
-                className={`${styles.tab} ${activeTab === 'chat' ? styles.active : ''}`}
-                onClick={() => setActiveTab('chat')}
+                className={styles.createBtn}
+                onClick={() => setShowCreateModal(true)}
               >
-                💬 Chat
-              </button>
-              <button 
-                className={`${styles.tab} ${activeTab === 'forum' ? styles.active : ''}`}
-                onClick={() => setActiveTab('forum')}
-              >
-                💭 Forum
-              </button>
-              <button 
-                className={`${styles.tab} ${activeTab === 'announcements' ? styles.active : ''}`}
-                onClick={() => setActiveTab('announcements')}
-              >
-                📢 Announcements
-              </button>
-              <button 
-                className={`${styles.tab} ${activeTab === 'content' ? styles.active : ''}`}
-                onClick={() => setActiveTab('content')}
-              >
-                📁 Content Sharing
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                New Group
               </button>
             </div>
-
-            <div className={styles.tabContent}>
-              {activeTab === 'chat' && <GroupChat groupId={selectedGroup.id} />}
-              {activeTab === 'forum' && <DiscussionForum groupId={selectedGroup.id} />}
-              {activeTab === 'announcements' && <AnnouncementBoard groupId={selectedGroup.id} />}
-              {activeTab === 'content' && <ContentSharing groupId={selectedGroup.id} />}
-            </div>
-          </>
-        ) : (
-          <div className={styles.emptyState}>
-            <p>No groups yet. Create one to get started!</p>
-            <button onClick={() => setShowCreateModal(true)}>Create First Group</button>
+            
+            <GroupList 
+              groups={groups}
+              selectedGroup={selectedGroup}
+              onSelectGroup={setSelectedGroup}
+              onDeleteGroup={handleGroupDeleted}
+            />
           </div>
+
+          <div className={styles.mainContent}>
+            {selectedGroup ? (
+              <>
+                <div className={styles.header}>
+                  <div className={styles.groupInfo}>
+                    <h1>{selectedGroup.name}</h1>
+                    <p>{selectedGroup.description}</p>
+                  </div>
+                  <button 
+                    className={styles.menuToggle}
+                    onClick={() => setIsSidebarOpen(true)}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <path d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className={styles.tabs}>
+                  <button 
+                    className={`${styles.tab} ${activeTab === 'chat' ? styles.active : ''}`}
+                    onClick={() => setActiveTab('chat')}
+                  >
+                    <span>💬</span> Chat
+                  </button>
+                  <button 
+                    className={`${styles.tab} ${activeTab === 'forum' ? styles.active : ''}`}
+                    onClick={() => setActiveTab('forum')}
+                  >
+                    <span>💭</span> Forum
+                  </button>
+                  <button 
+                    className={`${styles.tab} ${activeTab === 'announcements' ? styles.active : ''}`}
+                    onClick={() => setActiveTab('announcements')}
+                  >
+                    <span>📢</span> Announcements
+                  </button>
+                  <button 
+                    className={`${styles.tab} ${activeTab === 'content' ? styles.active : ''}`}
+                    onClick={() => setActiveTab('content')}
+                  >
+                    <span>📁</span> Content Sharing
+                  </button>
+                </div>
+
+                <div className={styles.tabContent}>
+                  {activeTab === 'chat' && <GroupChat groupId={selectedGroup.id} />}
+                  {activeTab === 'forum' && <DiscussionForum groupId={selectedGroup.id} />}
+                  {activeTab === 'announcements' && <AnnouncementBoard groupId={selectedGroup.id} />}
+                  {activeTab === 'content' && <ContentSharing groupId={selectedGroup.id} />}
+                </div>
+              </>
+            ) : (
+              <div className={styles.emptyState}>
+                <div className={styles.emptyIcon}>👥</div>
+                <h3>No groups yet</h3>
+                <p>Create your first group to start collaborating with others!</p>
+                <button 
+                  className={styles.createFirstBtn}
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  + Create First Group
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {showCreateModal && (
+          <GroupCreation 
+            onGroupCreated={handleGroupCreated}
+            onCancel={() => setShowCreateModal(false)}
+          />
         )}
       </div>
-
-      {showCreateModal && (
-        <GroupCreation 
-          onGroupCreated={handleGroupCreated}
-          onCancel={() => setShowCreateModal(false)}
-        />
-      )}
-    </div>
+    </>
   )
 }

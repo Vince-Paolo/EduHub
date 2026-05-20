@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import Navbar from "../components/Navbar"
-import { auth } from "../firebase"
 import styles from "./QuizConfig.module.css"
 import { quizEngine } from "../services/quizEngine"
 import { saveQuizResult, getModuleFile, blobToFile } from "../services/db"
@@ -96,11 +95,6 @@ async function callClaude(file, quizType, count) {
 
   // Call backend endpoint via same-origin /api path
   try {
-    const currentUser = auth.currentUser
-    if (!currentUser) {
-      throw new Error("You must be signed in to generate quizzes.")
-    }
-
     // Use secure HTTP-only session cookie created at login.
     const response = await fetch("/api/generate-quiz", {
       method: "POST",
@@ -124,7 +118,7 @@ async function callClaude(file, quizType, count) {
     return data.questions || []
   } catch (error) {
     if (error.message.includes("Failed to fetch")) {
-      throw new Error("Could not connect to the backend server. Make sure it's running on http://localhost:5000. Run 'npm run dev:server' in a new terminal.")
+      throw new Error("Could not connect to the backend server. Make sure the backend is running and accessible through the frontend dev server.")
     }
     throw error
   }

@@ -1,3 +1,4 @@
+// pages/Profile.jsx
 import { useState, useEffect } from "react"
 import Navbar from "../components/Navbar"
 import styles from "./Profile.module.css"
@@ -6,6 +7,7 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -22,41 +24,89 @@ export default function Profile() {
   })
   const [quizHistory, setQuizHistory] = useState([])
   const [modules, setModules] = useState([])
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [prevSettings, setPrevSettings] = useState(null)
 
   useEffect(() => {
-    // Load user data from localStorage
-    const savedUser = localStorage.getItem("currentUser")
-    if (savedUser) {
-      const parsed = JSON.parse(savedUser)
-      const userData = {
-        name: parsed.name || "User",
-        email: parsed.email || "user@eduhub.com",
+    loadUserData()
+  }, [])
+
+  const loadUserData = () => {
+    setIsLoading(true)
+    
+    try {
+      // Load user data from localStorage
+      const savedUser = localStorage.getItem("currentUser")
+      let userData = null
+      
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser)
+        userData = {
+          name: parsed.name || "User",
+          email: parsed.email || "user@eduhub.com",
+          phone: "+1 234 567 8900",
+          location: "San Francisco, CA",
+          joinDate: "January 2024"
+        }
+      } else {
+        // Create default user if none exists
+        userData = {
+          name: "User",
+          email: "user@eduhub.com",
+          phone: "+1 234 567 8900",
+          location: "San Francisco, CA",
+          joinDate: "January 2024"
+        }
+        // Save default user to localStorage
+        localStorage.setItem("currentUser", JSON.stringify({
+          name: "User",
+          email: "user@eduhub.com"
+        }))
+      }
+      
+      setCurrentUser(userData)
+      setFormData(userData)
+
+      // Load settings from localStorage
+      const savedSettings = localStorage.getItem("userSettings")
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings)
+        setSettingsData(parsedSettings)
+        // Apply dark mode if enabled
+        if (parsedSettings.darkMode) {
+          document.documentElement.setAttribute("data-theme", "dark")
+        } else {
+          document.documentElement.removeAttribute("data-theme")
+        }
+      }
+
+      // Load quiz history
+      const savedQuizzes = localStorage.getItem("quizHistory")
+      if (savedQuizzes) {
+        setQuizHistory(JSON.parse(savedQuizzes))
+      }
+
+      // Load modules
+      const savedModules = localStorage.getItem("uploadedModules")
+      if (savedModules) {
+        setModules(JSON.parse(savedModules))
+      }
+    } catch (error) {
+      console.error("Error loading user data:", error)
+      // Set fallback user data on error
+      const fallbackUser = {
+        name: "User",
+        email: "user@eduhub.com",
         phone: "+1 234 567 8900",
         location: "San Francisco, CA",
         joinDate: "January 2024"
       }
-      setCurrentUser(userData)
-      setFormData(userData)
+      setCurrentUser(fallbackUser)
+      setFormData(fallbackUser)
+    } finally {
+      setIsLoading(false)
     }
-
-    // Load settings from localStorage
-    const savedSettings = localStorage.getItem("userSettings")
-    if (savedSettings) {
-      setSettingsData(JSON.parse(savedSettings))
-    }
-
-    // Load quiz history
-    const savedQuizzes = localStorage.getItem("quizHistory")
-    if (savedQuizzes) {
-      setQuizHistory(JSON.parse(savedQuizzes))
-    }
-
-    // Load modules
-    const savedModules = localStorage.getItem("uploadedModules")
-    if (savedModules) {
-      setModules(JSON.parse(savedModules))
-    }
-  }, [])
+  }
 
   const handleEditChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -78,10 +128,6 @@ export default function Profile() {
     setSettingsData(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const [showConfirm, setShowConfirm] = useState(false)
-
-  const [prevSettings, setPrevSettings] = useState(null)
-
   const handleSaveSettings = () => {
     localStorage.setItem("userSettings", JSON.stringify(settingsData))
     if (settingsData.darkMode) {
@@ -89,19 +135,10 @@ export default function Profile() {
     } else {
       document.documentElement.removeAttribute("data-theme")
     }
-    setPrevSettings(null)   // clear snapshot after saving
+    setPrevSettings(null)
     setShowConfirm(false)
     setIsSettingsOpen(false)
   }
-
-  // Apply dark mode on page load
-  useEffect(() => {
-  if (settingsData.darkMode) {
-    document.documentElement.setAttribute("data-theme", "dark")
-  } else {
-    document.documentElement.removeAttribute("data-theme")  // ← this line was missing
-  }
-}, [settingsData.darkMode])
 
   // Calculate statistics
   const completedQuizzes = quizHistory.filter(q => q.status === "completed")
@@ -109,7 +146,7 @@ export default function Profile() {
     ? Math.round(completedQuizzes.reduce((sum, q) => sum + q.scorePercent, 0) / completedQuizzes.length)
     : 0
   const totalHours = Math.round(completedQuizzes.length * 1.5 + modules.length * 2)
-  const currentStreak = Math.floor(Math.random() * 30) + 1 // Random for demo
+  const currentStreak = Math.floor(Math.random() * 30) + 1
   const achievementPoints = (completedQuizzes.length * 100) + (modules.length * 50)
 
   const stats = [
@@ -119,12 +156,38 @@ export default function Profile() {
     { label: "Achievement Points", value: achievementPoints.toString() }
   ]
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className={styles.profileContainer}>
+        <Navbar />
+        <div className={styles.content}>
+          <div className={styles.loadingWrapper}>
+            <div className={styles.loadingSpinner}></div>
+            <p>Loading your profile...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // If somehow currentUser is still null after loading, show error state
   if (!currentUser) {
     return (
       <div className={styles.profileContainer}>
         <Navbar />
         <div className={styles.content}>
-          <p>Loading profile...</p>
+          <div className={styles.errorWrapper}>
+            <div className={styles.errorIcon}>⚠️</div>
+            <h3>Unable to load profile</h3>
+            <p>There was an error loading your profile data.</p>
+            <button 
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              onClick={loadUserData}
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -239,7 +302,7 @@ export default function Profile() {
                   <button 
                     className={`${styles.btn} ${styles.btnSecondary}`}
                     onClick={() => {
-                      setPrevSettings({ ...settingsData })  // snapshot current state
+                      setPrevSettings({ ...settingsData })
                       setIsSettingsOpen(true)
                     }}
                   >
@@ -268,7 +331,7 @@ export default function Profile() {
       {/* Settings Modal */}
       {isSettingsOpen && (
         <div className={styles.modalOverlay} onClick={() => {
-          setSettingsData(prevSettings)  // revert on backdrop click
+          setSettingsData(prevSettings)
           setShowConfirm(false)
           setIsSettingsOpen(false)
         }}>
@@ -278,7 +341,7 @@ export default function Profile() {
               <button 
                 className={styles.closeBtn}
                 onClick={() => {
-                  setSettingsData(prevSettings)  // revert all toggles
+                  setSettingsData(prevSettings)
                   setShowConfirm(false)
                   setIsSettingsOpen(false)
                 }}
@@ -398,48 +461,49 @@ export default function Profile() {
               <button 
                 className={`${styles.btn} ${styles.btnSecondary}`}
                 onClick={() => {
-                  setSettingsData(prevSettings)  // revert all toggles
+                  setSettingsData(prevSettings)
                   setShowConfirm(false)
                   setIsSettingsOpen(false)
                 }}
               >
                 Cancel
               </button>
-                <button 
-                  className={`${styles.btn} ${styles.btnPrimary}`}
-                  onClick={() => setShowConfirm(true)}
-                >
+              <button 
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={() => setShowConfirm(true)}
+              >
                 Save Settings
               </button>
             </div>
           </div>
         </div>
       )}
+
       {showConfirm && (
         <div className={styles.modalOverlay} onClick={() => setShowConfirm(false)}>
           <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.confirmIcon}>💾</div>
-              <h3 className={styles.confirmTitle}>Save Settings?</h3>
-                <p className={styles.confirmText}>
-                  Your preferences will be updated and applied immediately.
-                </p>
-                    <div className={styles.confirmButtons}>
-                      <button
-                        className={`${styles.btn} ${styles.btnSecondary}`}
-                        onClick={() => setShowConfirm(false)}
-                      >
-                        Go Back
-                      </button>
-                    <button
-                      className={`${styles.btn} ${styles.btnPrimary}`}
-                      onClick={handleSaveSettings}
-                    >
-                      Yes, Save
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+            <h3 className={styles.confirmTitle}>Save Settings?</h3>
+            <p className={styles.confirmText}>
+              Your preferences will be updated and applied immediately.
+            </p>
+            <div className={styles.confirmButtons}>
+              <button
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                onClick={() => setShowConfirm(false)}
+              >
+                Go Back
+              </button>
+              <button
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={handleSaveSettings}
+              >
+                Yes, Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

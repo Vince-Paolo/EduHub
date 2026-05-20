@@ -23,7 +23,7 @@
  */
 
 const LS_KEY_PREFIX  = 'eduhub_syncqueue_';
-const API_SYNC_URL   = 'http://localhost:5000/api/sync';
+const API_SYNC_URL   = '/api/sync';
 const MAX_RETRIES    = 5;
 const BASE_DELAY_MS  = 1_000;   // 1 s → 2 s → 4 s … (exponential)
 

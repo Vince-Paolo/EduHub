@@ -1,9 +1,11 @@
-import { useNavigate } from "react-router-dom"
+﻿import { useNavigate } from "react-router-dom"
 import { useState } from "react"
+import { useAuth } from "../context/AuthContext"
 import logoHorizontal from "../assets/logo-horizontal.svg"
 
 export default function Register() {
   const navigate = useNavigate()
+  const { register } = useAuth()
   const [form, setForm] = useState({
     fullName: "",
     username: "",
@@ -12,24 +14,13 @@ export default function Register() {
     confirmPassword: ""
   })
   const [errors, setErrors] = useState({})
+  const [serverError, setServerError] = useState("")
   const [submitted, setSubmitted] = useState(false)
 
-  const inputStyle = {
-    width: "100%",
-    padding: "0.75rem 1rem",
-    border: "2px solid #e5e7eb",
-    borderRadius: "0.5rem",
-    fontSize: "1rem",
-    transition: "all 0.2s",
-    backgroundColor: "#f9fafb",
-    boxSizing: "border-box",
-    outline: "none",
-    color: "#111827"
-  }
-
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
-    setErrors({ ...errors, [e.target.name]: "" })
+    const { name, value } = e.target
+    setForm((prev) => ({ ...prev, [name]: value }))
+    setErrors((prev) => ({ ...prev, [name]: "" }))
   }
 
   const validate = () => {
@@ -46,19 +37,36 @@ export default function Register() {
     return newErrors
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    const newErrors = validate()
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
+    setServerError("")
+
+    const validationErrors = validate()
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors)
       return
     }
-    setSubmitted(true)
-    setTimeout(() => navigate("/"), 1800)
+
+    try {
+      await register(form.fullName, form.username, form.email, form.password)
+      setSubmitted(true)
+      setTimeout(() => navigate("/dashboard"), 1800)
+    } catch (error) {
+      setServerError(error.message || "Registration failed.")
+    }
   }
 
   const fieldStyle = (name) => ({
-    ...inputStyle,
+    width: "100%",
+    padding: "0.75rem 1rem",
+    border: "2px solid #e5e7eb",
+    borderRadius: "0.5rem",
+    fontSize: "1rem",
+    transition: "all 0.2s",
+    backgroundColor: "#f9fafb",
+    boxSizing: "border-box",
+    outline: "none",
+    color: "#111827",
     borderColor: errors[name] ? "#ef4444" : "#e5e7eb"
   })
 
@@ -80,28 +88,25 @@ export default function Register() {
         width: "100%",
         animation: "fadeInUp 0.6s ease-out"
       }}>
-
-        {/* Header */}
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <img src={logoHorizontal} alt="EduHub" style={{
-            width: "100%",
-            maxWidth: "300px",
-            height: "auto",
-            margin: "0 auto 1rem",
-            display: "block"
-          }} />
+          <img
+            src={logoHorizontal}
+            alt="EduHub"
+            style={{
+              width: "100%",
+              maxWidth: "300px",
+              height: "auto",
+              margin: "0 auto 1rem",
+              display: "block"
+            }}
+          />
           <p style={{ color: "#6b7280", fontSize: "1.05rem", fontWeight: "500" }}>
             Create your account
           </p>
         </div>
 
-        {/* Success State */}
         {submitted ? (
-          <div style={{
-            textAlign: "center",
-            padding: "2rem 1rem",
-            animation: "fadeInUp 0.4s ease-out"
-          }}>
+          <div style={{ textAlign: "center", padding: "2rem 1rem", animation: "fadeInUp 0.4s ease-out" }}>
             <div style={{ fontSize: "3.5rem", marginBottom: "1rem" }}>🎉</div>
             <h2 style={{ color: "#15803d", fontWeight: "700", fontSize: "1.25rem", marginBottom: "0.5rem" }}>
               Account Created!
@@ -111,146 +116,148 @@ export default function Register() {
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <>
+            {serverError && (
+              <div style={{ padding: "1rem", borderRadius: "0.75rem", background: "#fee2e2", color: "#991b1b", marginBottom: "1rem" }}>
+                {serverError}
+              </div>
+            )}
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+              <div>
+                <label style={labelStyle}>Full Name</label>
+                <input
+                  name="fullName"
+                  type="text"
+                  value={form.fullName}
+                  onChange={handleChange}
+                  placeholder="Enter your full name"
+                  style={fieldStyle("fullName")}
+                  onFocus={(e) => applyFocus(e, !!errors.fullName)}
+                  onBlur={(e) => applyBlur(e, !!errors.fullName)}
+                />
+                {errors.fullName && <p style={errorStyle}>{errors.fullName}</p>}
+              </div>
 
-            {/* Full Name */}
-            <div>
-              <label style={labelStyle}>Full Name</label>
-              <input
-                name="fullName"
-                type="text"
-                value={form.fullName}
-                onChange={handleChange}
-                placeholder="Enter your full name"
-                style={fieldStyle("fullName")}
-                onFocus={e => applyFocus(e, !!errors.fullName)}
-                onBlur={e => applyBlur(e, !!errors.fullName)}
-              />
-              {errors.fullName && <p style={errorStyle}>{errors.fullName}</p>}
-            </div>
+              <div>
+                <label style={labelStyle}>Username</label>
+                <input
+                  name="username"
+                  type="text"
+                  value={form.username}
+                  onChange={handleChange}
+                  placeholder="Choose a username"
+                  style={fieldStyle("username")}
+                  onFocus={(e) => applyFocus(e, !!errors.username)}
+                  onBlur={(e) => applyBlur(e, !!errors.username)}
+                />
+                {errors.username && <p style={errorStyle}>{errors.username}</p>}
+              </div>
 
-            {/* Username */}
-            <div>
-              <label style={labelStyle}>Username</label>
-              <input
-                name="username"
-                type="text"
-                value={form.username}
-                onChange={handleChange}
-                placeholder="Choose a username"
-                style={fieldStyle("username")}
-                onFocus={e => applyFocus(e, !!errors.username)}
-                onBlur={e => applyBlur(e, !!errors.username)}
-              />
-              {errors.username && <p style={errorStyle}>{errors.username}</p>}
-            </div>
+              <div>
+                <label style={labelStyle}>Email Address</label>
+                <input
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="Enter your email"
+                  style={fieldStyle("email")}
+                  onFocus={(e) => applyFocus(e, !!errors.email)}
+                  onBlur={(e) => applyBlur(e, !!errors.email)}
+                />
+                {errors.email && <p style={errorStyle}>{errors.email}</p>}
+              </div>
 
-            {/* Email */}
-            <div>
-              <label style={labelStyle}>Email Address</label>
-              <input
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="Enter your email"
-                style={fieldStyle("email")}
-                onFocus={e => applyFocus(e, !!errors.email)}
-                onBlur={e => applyBlur(e, !!errors.email)}
-              />
-              {errors.email && <p style={errorStyle}>{errors.email}</p>}
-            </div>
-
-            {/* Password */}
-            <div>
-              <label style={labelStyle}>Password</label>
-              <input
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                placeholder="Create a password (min. 6 characters)"
-                style={fieldStyle("password")}
-                onFocus={e => applyFocus(e, !!errors.password)}
-                onBlur={e => applyBlur(e, !!errors.password)}
-              />
-              {errors.password && <p style={errorStyle}>{errors.password}</p>}
-              {/* Strength bar */}
-              {form.password && (
-                <div style={{ marginTop: "0.5rem" }}>
-                  <div style={{ display: "flex", gap: "4px", marginBottom: "2px" }}>
-                    {[1,2,3,4].map(i => (
-                      <div key={i} style={{
-                        flex: 1, height: "4px", borderRadius: "9999px",
-                        background: getStrengthColor(form.password, i),
-                        transition: "background 0.3s"
-                      }} />
-                    ))}
+              <div>
+                <label style={labelStyle}>Password</label>
+                <input
+                  name="password"
+                  type="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Create a password (min. 6 characters)"
+                  style={fieldStyle("password")}
+                  onFocus={(e) => applyFocus(e, !!errors.password)}
+                  onBlur={(e) => applyBlur(e, !!errors.password)}
+                />
+                {errors.password && <p style={errorStyle}>{errors.password}</p>}
+                {form.password && (
+                  <div style={{ marginTop: "0.5rem" }}>
+                    <div style={{ display: "flex", gap: "4px", marginBottom: "2px" }}>
+                      {[1, 2, 3, 4].map((bar) => (
+                        <div
+                          key={bar}
+                          style={{
+                            flex: 1,
+                            height: "4px",
+                            borderRadius: "9999px",
+                            background: getStrengthColor(form.password, bar),
+                            transition: "background 0.3s"
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <p style={{ fontSize: "0.75rem", color: getStrengthLabel(form.password).color, margin: 0 }}>
+                      {getStrengthLabel(form.password).text}
+                    </p>
                   </div>
-                  <p style={{ fontSize: "0.75rem", color: getStrengthLabel(form.password).color, margin: 0 }}>
-                    {getStrengthLabel(form.password).text}
+                )}
+              </div>
+
+              <div>
+                <label style={labelStyle}>Confirm Password</label>
+                <input
+                  name="confirmPassword"
+                  type="password"
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Re-enter your password"
+                  style={fieldStyle("confirmPassword")}
+                  onFocus={(e) => applyFocus(e, !!errors.confirmPassword)}
+                  onBlur={(e) => applyBlur(e, !!errors.confirmPassword)}
+                />
+                {errors.confirmPassword && <p style={errorStyle}>{errors.confirmPassword}</p>}
+                {form.confirmPassword && !errors.confirmPassword && form.password === form.confirmPassword && (
+                  <p style={{ fontSize: "0.78rem", color: "#22c55e", marginTop: "0.3rem" }}>
+                    ✓ Passwords match
                   </p>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* Confirm Password */}
-            <div>
-              <label style={labelStyle}>Confirm Password</label>
-              <input
-                name="confirmPassword"
-                type="password"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                placeholder="Re-enter your password"
-                style={fieldStyle("confirmPassword")}
-                onFocus={e => applyFocus(e, !!errors.confirmPassword)}
-                onBlur={e => applyBlur(e, !!errors.confirmPassword)}
-              />
-              {errors.confirmPassword && <p style={errorStyle}>{errors.confirmPassword}</p>}
-              {form.confirmPassword && !errors.confirmPassword && form.password === form.confirmPassword && (
-                <p style={{ fontSize: "0.78rem", color: "#22c55e", marginTop: "0.3rem" }}>✓ Passwords match</p>
-              )}
-            </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              style={{
-                width: "100%",
-                padding: "0.8rem",
-                background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                color: "white",
-                border: "none",
-                borderRadius: "0.5rem",
-                fontSize: "1rem",
-                fontWeight: "600",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                boxShadow: "0 4px 6px -1px rgba(34,197,94,0.3)",
-                marginTop: "0.25rem"
-              }}
-              onMouseEnter={e => {
-                e.target.style.transform = "translateY(-2px)"
-                e.target.style.boxShadow = "0 10px 15px -3px rgba(34,197,94,0.3)"
-              }}
-              onMouseLeave={e => {
-                e.target.style.transform = "translateY(0)"
-                e.target.style.boxShadow = "0 4px 6px -1px rgba(34,197,94,0.3)"
-              }}
-            >
-              Create Account
-            </button>
-          </form>
+              <button
+                type="submit"
+                style={{
+                  width: "100%",
+                  padding: "0.8rem",
+                  background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "0.5rem",
+                  fontSize: "1rem",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  boxShadow: "0 4px 6px -1px rgba(34,197,94,0.3)",
+                  marginTop: "0.25rem"
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = "translateY(-2px)"
+                  e.target.style.boxShadow = "0 10px 15px -3px rgba(34,197,94,0.3)"
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = "translateY(0)"
+                  e.target.style.boxShadow = "0 4px 6px -1px rgba(34,197,94,0.3)"
+                }}
+              >
+                Create Account
+              </button>
+            </form>
+          </>
         )}
 
-        {/* Divider */}
         {!submitted && (
           <>
-            <div style={{
-              display: "flex", alignItems: "center", gap: "1rem",
-              margin: "1.5rem 0"
-            }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", margin: "1.5rem 0" }}>
               <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
               <span style={{ fontSize: "0.875rem", color: "#9ca3af" }}>or</span>
               <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
@@ -274,8 +281,8 @@ export default function Register() {
                   cursor: "pointer",
                   transition: "all 0.2s"
                 }}
-                onMouseEnter={e => e.target.style.background = "#f0fdf4"}
-                onMouseLeave={e => e.target.style.background = "white"}
+                onMouseEnter={(e) => { e.target.style.background = "#f0fdf4" }}
+                onMouseLeave={(e) => { e.target.style.background = "white" }}
               >
                 Sign In
               </button>
@@ -294,8 +301,6 @@ export default function Register() {
   )
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────
-
 const labelStyle = {
   display: "block",
   fontSize: "0.875rem",
@@ -313,24 +318,13 @@ const errorStyle = {
 function applyFocus(e, hasError) {
   e.target.style.borderColor = hasError ? "#ef4444" : "#22c55e"
   e.target.style.backgroundColor = "white"
-  e.target.style.boxShadow = hasError
-    ? "0 0 0 3px rgba(239,68,68,0.1)"
-    : "0 0 0 3px rgba(34,197,94,0.1)"
+  e.target.style.boxShadow = hasError ? "0 0 0 3px rgba(239,68,68,0.1)" : "0 0 0 3px rgba(34,197,94,0.1)"
 }
 
 function applyBlur(e, hasError) {
   e.target.style.borderColor = hasError ? "#ef4444" : "#e5e7eb"
   e.target.style.backgroundColor = "#f9fafb"
   e.target.style.boxShadow = "none"
-}
-
-function getPasswordStrength(password) {
-  let score = 0
-  if (password.length >= 6) score++
-  if (password.length >= 10) score++
-  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++
-  if (/[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) score++
-  return score
 }
 
 function getStrengthColor(password, bar) {
@@ -349,4 +343,13 @@ function getStrengthLabel(password) {
     { text: "Strong", color: "#22c55e" }
   ]
   return labels[Math.max(0, score - 1)] || labels[0]
+}
+
+function getPasswordStrength(password) {
+  let score = 0
+  if (password.length >= 6) score++
+  if (password.length >= 10) score++
+  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++
+  if (/[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) score++
+  return score
 }
