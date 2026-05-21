@@ -160,6 +160,7 @@ export default function QuizConfig() {
   const [genError, setGenError]       = useState("")
   const [ongoingQuizzes, setOngoingQuizzes] = useState([])
   const [resumeAttemptId, setResumeAttemptId] = useState(null)
+  const [isChangingFile, setIsChangingFile] = useState(false)
 
   const refreshOngoingQuizzes = async (moduleId) => {
     try {
@@ -213,6 +214,7 @@ export default function QuizConfig() {
     }
     if (file.size > 10 * 1024 * 1024) { setUploadError("File must be under 10 MB."); return }
     setUploadedFile(file)
+    setIsChangingFile(false)
   }
 
   const handleGenerate = async () => {
@@ -421,40 +423,73 @@ export default function QuizConfig() {
             {/* Step 1 – File Source */}
             <section className={styles.section}>
               <h2 className={styles.sectionTitle}><span className={styles.stepNum}>1</span> File Source</h2>
-              {savedFileRecord && !uploadedFile ? (
-                <div className={styles.fileReady}>
-                  <span className={styles.fileReadyIcon}>{savedFileRecord.fileType === "application/pdf" ? "📄" : "📝"}</span>
-                  <div className={styles.fileReadyInfo}>
-                    <p className={styles.fileReadyName}>{savedFileRecord.fileName}</p>
-                    <p className={styles.fileReadySize}>{savedFileRecord.fileSize} · ✅ Ready from uploaded module</p>
-                  </div>
-                  <button className={styles.removeBtn} onClick={() => setSavedFileRecord(null)}>✕</button>
-                </div>
-              ) : !uploadedFile ? (
-                <div
-                  className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ""}`}
-                  onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={e => { e.preventDefault(); setIsDragging(false); processFile(e.dataTransfer.files[0]) }}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <div className={styles.dropzoneIcon}>{isDragging ? "📥" : "☁️"}</div>
-                  <p className={styles.dropzoneText}>{isDragging ? "Drop to upload!" : "Drag & drop your file here"}</p>
-                  <p className={styles.dropzoneSub}>or click to browse &nbsp;·&nbsp; PDF · TXT · MD &nbsp;·&nbsp; Max 10 MB</p>
-                </div>
-              ) : (
+
+              {/* ── A new file was picked by the user ── */}
+              {uploadedFile && !isChangingFile ? (
                 <div className={styles.fileReady}>
                   <span className={styles.fileReadyIcon}>{uploadedFile.type === "application/pdf" ? "📄" : "📝"}</span>
                   <div className={styles.fileReadyInfo}>
                     <p className={styles.fileReadyName}>{uploadedFile.name}</p>
                     <p className={styles.fileReadySize}>{(uploadedFile.size / 1024).toFixed(1)} KB &nbsp;·&nbsp; ✅ Ready</p>
                   </div>
-                  <button className={styles.removeBtn} onClick={() => setUploadedFile(null)}>✕</button>
+                  <button
+                    className={styles.changeBtn}
+                    onClick={() => { setUploadedFile(null); setIsChangingFile(false) }}
+                    title={savedFileRecord ? "Revert to module file" : "Remove file"}
+                  >
+                    {savedFileRecord ? "↩ Revert" : "✕"}
+                  </button>
                 </div>
+
+              ) : /* ── Module file auto-loaded, not currently swapping ── */
+              savedFileRecord && !isChangingFile ? (
+                <>
+                  <div className={styles.fileReady}>
+                    <span className={styles.fileReadyIcon}>{savedFileRecord.fileType === "application/pdf" ? "📄" : "📝"}</span>
+                    <div className={styles.fileReadyInfo}>
+                      <p className={styles.fileReadyName}>{savedFileRecord.fileName}</p>
+                      <p className={styles.fileReadySize}>{savedFileRecord.fileSize} &nbsp;·&nbsp; ✅ Auto-loaded from module</p>
+                    </div>
+                    <button
+                      className={styles.changeBtn}
+                      onClick={() => { setIsChangingFile(true); setUploadError("") }}
+                      title="Use a different file"
+                    >
+                      🔄 Change
+                    </button>
+                  </div>
+                  <p className={styles.hintText}>This module's file was loaded automatically. Click <strong>Change</strong> to use a different file instead.</p>
+                </>
+
+              ) : /* ── Dropzone: no saved file, or user clicked Change ── */ (
+                <>
+                  <div
+                    className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ""}`}
+                    onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={e => { e.preventDefault(); setIsDragging(false); processFile(e.dataTransfer.files[0]) }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <div className={styles.dropzoneIcon}>{isDragging ? "📥" : "☁️"}</div>
+                    <p className={styles.dropzoneText}>{isDragging ? "Drop to upload!" : "Drag & drop your file here"}</p>
+                    <p className={styles.dropzoneSub}>or click to browse &nbsp;·&nbsp; PDF · TXT · MD &nbsp;·&nbsp; Max 10 MB</p>
+                  </div>
+                  {/* Cancel back to auto-loaded file if one exists */}
+                  {savedFileRecord && isChangingFile && (
+                    <p className={styles.hintText}>
+                      Or{" "}
+                      <button
+                        className={styles.cancelChangeBtn}
+                        onClick={() => { setIsChangingFile(false); setUploadError("") }}
+                      >
+                        keep using the module file
+                      </button>
+                      {" "}({savedFileRecord.fileName})
+                    </p>
+                  )}
+                </>
               )}
-              {savedFileRecord && !uploadedFile && (
-                <p className={styles.hintText}>Using the file already saved from your module upload. You can still upload a new file to override it.</p>
-              )}
+
               {uploadError && <p className={styles.errMsg}>⚠️ {uploadError}</p>}
             </section>
 
@@ -503,7 +538,7 @@ export default function QuizConfig() {
             <button
               className={styles.generateBtn}
               onClick={handleGenerate}
-              disabled={phase === "generating" || (!uploadedFile && !savedFileRecord)}
+              disabled={phase === "generating" || (!uploadedFile && !savedFileRecord) || isChangingFile}
             >
               {phase === "generating"
                 ? <span className={styles.spinRow}><span className={styles.spin}></span> Generating {count} questions…</span>
