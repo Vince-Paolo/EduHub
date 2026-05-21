@@ -2,12 +2,14 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { collaborationService } from '../services/collaborationService'
+import { getUsersByIds } from '../services/userService'
 import InviteModal from './InviteModal'
 import styles from './GroupMembers.module.css'
 
 export default function GroupMembers({ groupId, groupName, createdBy }) {
   const { user } = useAuth()
   const [members, setMembers] = useState([])
+  const [memberProfiles, setMemberProfiles] = useState({})
   const [loading, setLoading] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -22,10 +24,27 @@ export default function GroupMembers({ groupId, groupName, createdBy }) {
       setLoading(true)
       const groupMembers = await collaborationService.getGroupMembers(groupId)
       setMembers(groupMembers)
+      await loadMemberProfiles(groupMembers)
     } catch (error) {
       console.error('Failed to load members:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadMemberProfiles = async (groupMembers) => {
+    const ids = Array.from(new Set(groupMembers.map(member => String(member.userId)).filter(Boolean)))
+    if (!ids.length) {
+      setMemberProfiles({})
+      return
+    }
+
+    try {
+      const users = await getUsersByIds(ids)
+      setMemberProfiles(Object.fromEntries(users.map((user) => [String(user.id), user])))
+    } catch (error) {
+      console.error('Failed to load member profiles:', error)
+      setMemberProfiles({})
     }
   }
 
@@ -65,27 +84,34 @@ export default function GroupMembers({ groupId, groupName, createdBy }) {
         <div className={styles.empty}>No members yet</div>
       ) : (
         <div className={styles.membersList}>
-          {members.map(member => (
-            <div key={member.id} className={styles.memberItem}>
-              <div className={styles.memberInfo}>
-                <div className={styles.memberName}>
-                  {member.userId === user?.uid ? 'You' : member.userId}
+          {members.map((member) => {
+            const profile = memberProfiles[String(member.userId)]
+            const displayName = String(member.userId) === String(user?.uid)
+              ? 'You'
+              : profile?.fullName || profile?.username || profile?.email || member.userId
+
+            return (
+              <div key={member.id} className={styles.memberItem}>
+                <div className={styles.memberInfo}>
+                  <div className={styles.memberName}>
+                    {displayName}
+                  </div>
+                  <div className={styles.memberRole}>
+                    {member.role === 'admin' ? '👑 Admin' : 'Member'}
+                  </div>
                 </div>
-                <div className={styles.memberRole}>
-                  {member.role === 'admin' ? '👑 Admin' : 'Member'}
-                </div>
+                {isAdmin && member.role !== 'admin' && (
+                  <button
+                    className={styles.removeBtn}
+                    onClick={() => handleRemoveMember(member.id, member.userId)}
+                    title="Remove member"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
-              {isAdmin && member.role !== 'admin' && (
-                <button
-                  className={styles.removeBtn}
-                  onClick={() => handleRemoveMember(member.id, member.userId)}
-                  title="Remove member"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
