@@ -1,15 +1,19 @@
 // pages/Profile.jsx
 import { useState, useEffect } from "react"
+import { useAuth } from "../context/AuthContext"
+import { getScopedJson, setScopedJson } from "../services/storage"
 import Navbar from "../components/Navbar"
 import styles from "./Profile.module.css"
 
 export default function Profile() {
+  const { user } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [formData, setFormData] = useState({
     name: "",
+    username: "",
     email: "",
     phone: "+1 234 567 8900",
     location: "San Francisco, CA"
@@ -29,68 +33,65 @@ export default function Profile() {
 
   useEffect(() => {
     loadUserData()
-  }, [])
+  }, [user])
+
+  const formatJoinDate = (value) => {
+    if (!value) return "January 2024"
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return String(value)
+    return date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+  }
+
+  const buildProfileData = (authUser, storedUser = {}) => {
+    const rawJoinDate = authUser?.createdAt || storedUser.joinDate
+    return {
+      name: authUser?.fullName || authUser?.username || storedUser.name || "User",
+      username: authUser?.username || storedUser.username || "",
+      email: authUser?.email || storedUser.email || "user@eduhub.com",
+      phone: storedUser.phone || "+1 234 567 8900",
+      location: storedUser.location || "San Francisco, CA",
+      joinDate: formatJoinDate(rawJoinDate)
+    }
+  }
 
   const loadUserData = () => {
     setIsLoading(true)
     
     try {
-      // Load user data from localStorage
-      const savedUser = localStorage.getItem("currentUser")
-      let userData = null
-      
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser)
-        userData = {
-          name: parsed.name || "User",
-          email: parsed.email || "user@eduhub.com",
-          phone: "+1 234 567 8900",
-          location: "San Francisco, CA",
-          joinDate: "January 2024"
-        }
-      } else {
-        // Create default user if none exists
-        userData = {
-          name: "User",
-          email: "user@eduhub.com",
-          phone: "+1 234 567 8900",
-          location: "San Francisco, CA",
-          joinDate: "January 2024"
-        }
-        // Save default user to localStorage
-        localStorage.setItem("currentUser", JSON.stringify({
-          name: "User",
-          email: "user@eduhub.com"
-        }))
+      const savedUser = getScopedJson('currentUser', user?.uid, {})
+      const userData = buildProfileData(user, savedUser)
+
+      if (user) {
+        setScopedJson('currentUser', {
+          name: userData.name,
+          username: userData.username,
+          email: userData.email,
+          phone: userData.phone,
+          location: userData.location,
+          joinDate: userData.joinDate
+        }, user.uid)
       }
-      
+
       setCurrentUser(userData)
       setFormData(userData)
 
       // Load settings from localStorage
-      const savedSettings = localStorage.getItem("userSettings")
+      const savedSettings = getScopedJson('userSettings', user?.uid, null)
       if (savedSettings) {
-        const parsedSettings = JSON.parse(savedSettings)
-        setSettingsData(parsedSettings)
+        setSettingsData(savedSettings)
         // Apply dark mode if enabled
-        if (parsedSettings.darkMode) {
+        if (savedSettings.darkMode) {
           document.documentElement.setAttribute("data-theme", "dark")
         } else {
           document.documentElement.removeAttribute("data-theme")
         }
       }
 
-      // Load quiz history
-      const savedQuizzes = localStorage.getItem("quizHistory")
-      if (savedQuizzes) {
-        setQuizHistory(JSON.parse(savedQuizzes))
-      }
+      const savedQuizzes = getScopedJson('quizHistory', user?.uid, [])
+      setQuizHistory(savedQuizzes)
 
-      // Load modules
-      const savedModules = localStorage.getItem("uploadedModules")
-      if (savedModules) {
-        setModules(JSON.parse(savedModules))
-      }
+      const savedModules = getScopedJson('uploadedModules', user?.uid, [])
+      setModules(savedModules)
     } catch (error) {
       console.error("Error loading user data:", error)
       // Set fallback user data on error
@@ -113,13 +114,16 @@ export default function Profile() {
   }
 
   const handleSaveProfile = () => {
-    // Update localStorage
     const updated = {
-      ...JSON.parse(localStorage.getItem("currentUser") || "{}"),
+      ...getScopedJson('currentUser', user?.uid, {}),
       name: formData.name,
-      email: formData.email
+      username: formData.username,
+      email: formData.email,
+      phone: formData.phone,
+      location: formData.location,
+      joinDate: currentUser?.joinDate || "January 2024"
     }
-    localStorage.setItem("currentUser", JSON.stringify(updated))
+    setScopedJson('currentUser', updated, user?.uid)
     setCurrentUser(formData)
     setIsEditing(false)
   }
@@ -129,7 +133,7 @@ export default function Profile() {
   }
 
   const handleSaveSettings = () => {
-    localStorage.setItem("userSettings", JSON.stringify(settingsData))
+    setScopedJson('userSettings', settingsData, user?.uid)
     if (settingsData.darkMode) {
       document.documentElement.setAttribute("data-theme", "dark")
     } else {
@@ -142,16 +146,70 @@ export default function Profile() {
 
   // Calculate statistics
   const completedQuizzes = quizHistory.filter(q => q.status === "completed")
+
+  const normalizedQuizScore = (quiz) => {
+    if (typeof quiz.scorePercent === "number") return quiz.scorePercent
+    if (typeof quiz.score === "number" && typeof quiz.totalQuestions === "number" && quiz.totalQuestions > 0) {
+      return Math.round((quiz.score / quiz.totalQuestions) * 100)
+    }
+    return 0
+  }
+
   const avgScore = completedQuizzes.length
-    ? Math.round(completedQuizzes.reduce((sum, q) => sum + q.scorePercent, 0) / completedQuizzes.length)
+    ? Math.round(completedQuizzes.reduce((sum, q) => sum + normalizedQuizScore(q), 0) / completedQuizzes.length)
     : 0
-  const totalHours = Math.round(completedQuizzes.length * 1.5 + modules.length * 2)
-  const currentStreak = Math.floor(Math.random() * 30) + 1
-  const achievementPoints = (completedQuizzes.length * 100) + (modules.length * 50)
+
+  const totalMinutesLearned = completedQuizzes.reduce((sum, q) => {
+    const questions = q.totalQuestions || 0
+    return sum + (questions * 2)
+  }, 0) + (modules.length * 10)
+
+  const totalHours = Math.max(0, Math.round(totalMinutesLearned / 60))
+
+  const calculateStreak = () => {
+    if (!completedQuizzes.length) return 0
+
+    const uniqueDays = Array.from(new Set(
+      completedQuizzes
+        .map(q => q.completedAt)
+        .map(ts => {
+          const date = new Date(ts)
+          if (Number.isNaN(date.getTime())) return null
+          date.setHours(0, 0, 0, 0)
+          return date.getTime()
+        })
+        .filter(Boolean)
+    ))
+      .sort((a, b) => b - a)
+
+    if (!uniqueDays.length) return 0
+
+    let streak = 0
+    let expectedDay = new Date()
+    expectedDay.setHours(0, 0, 0, 0)
+    let currentDay = expectedDay.getTime()
+
+    for (const dayTimestamp of uniqueDays) {
+      if (dayTimestamp === currentDay) {
+        streak += 1
+        currentDay -= 86400000
+      } else if (dayTimestamp === currentDay - 86400000) {
+        streak += 1
+        currentDay -= 86400000
+      } else if (dayTimestamp < currentDay) {
+        break
+      }
+    }
+
+    return streak
+  }
+
+  const currentStreak = calculateStreak()
+  const achievementPoints = completedQuizzes.reduce((sum, q) => sum + normalizedQuizScore(q) * 5, 0) + (modules.length * 20)
 
   const stats = [
     { label: "Quizzes Completed", value: completedQuizzes.length.toString() },
-    { label: "Total Hours", value: totalHours.toString() },
+    { label: "Average Score", value: `${avgScore}%` },
     { label: "Current Streak", value: `${currentStreak} days` },
     { label: "Achievement Points", value: achievementPoints.toString() }
   ]
@@ -211,6 +269,7 @@ export default function Profile() {
             <div className={styles.profileHeader}>
               <div className={styles.avatar}>👤</div>
               <div className={styles.userName}>{displayUser.name}</div>
+              {displayUser.username && <div className={styles.userHandle}>@{displayUser.username}</div>}
               <div className={styles.userEmail}>{displayUser.email}</div>
             </div>
 
@@ -222,6 +281,15 @@ export default function Profile() {
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleEditChange("name", e.target.value)}
+                    className={styles.editInput}
+                  />
+                </div>
+                <div className={styles.editGroup}>
+                  <label className={styles.editLabel}>Username</label>
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => handleEditChange("username", e.target.value)}
                     className={styles.editInput}
                   />
                 </div>
@@ -255,6 +323,11 @@ export default function Profile() {
               </>
             ) : (
               <>
+                <div className={styles.infoGroup}>
+                  <div className={styles.infoLabel}>Username</div>
+                  <div className={styles.infoValue}>{displayUser.username || "Not set"}</div>
+                </div>
+
                 <div className={styles.infoGroup}>
                   <div className={styles.infoLabel}>Phone</div>
                   <div className={styles.infoValue}>{displayUser.phone}</div>

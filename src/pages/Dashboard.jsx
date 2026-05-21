@@ -1,51 +1,73 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
+import { getScopedJson, setScopedJson } from "../services/storage"
 import Navbar from "../components/Navbar"
 import ModuleCard from "../components/ModuleCard"
+import { quizEngine } from "../services/quizEngine"
+import { collaborationService } from "../services/collaborationService"
 import styles from "./Dashboard.module.css"
 
 export default function Dashboard() {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [modules, setModules] = useState([])
   const [currentUser, setCurrentUser] = useState(null)
   const [quizzes, setQuizzes] = useState([])
   const [userName, setUserName] = useState("Learner")
   const [quizHistory, setQuizHistory] = useState([])
+  const [engineOngoingQuizzes, setEngineOngoingQuizzes] = useState([])
+  const [pendingInvites, setPendingInvites] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [uploadError, setUploadError] = useState("")
   const fileInputRef = useRef(null)
 
   useEffect(() => {
-    // Load user info
-    const user = localStorage.getItem("currentUser")
-    if (user) {
+    const loadDashboardData = async () => {
+      // Load user info from auth state
+      if (user) {
+        setUserName(user.fullName || user.username || "Learner")
+      }
+
+      // Load modules scoped to the current user
+      const savedModules = getScopedJson('uploadedModules', user?.uid, [])
+      setModules(savedModules)
+
+      // Load quiz history scoped to the current user
+      const savedQuizzes = getScopedJson('quizHistory', user?.uid, [])
+      setQuizHistory(savedQuizzes)
+
+      if (user) {
+        try {
+          const pending = await collaborationService.getPendingInvitations(user.uid, user.email)
+          setPendingInvites(pending.length)
+        } catch (error) {
+          console.warn('Failed to load pending invitations:', error)
+          setPendingInvites(0)
+        }
+      }
+
       try {
-        const parsed = JSON.parse(user)
-        setUserName(parsed.fullName || parsed.username || "Learner")
-      } catch {
-        setUserName(localStorage.getItem("currentUser") || "Learner")
+        const ongoing = await quizEngine.getAllOngoingQuizzes()
+        setEngineOngoingQuizzes(ongoing)
+      } catch (error) {
+        console.warn('Failed to load ongoing quizzes:', error)
       }
     }
 
-    // Load modules
-    const savedModules = localStorage.getItem("uploadedModules")
-    if (savedModules) setModules(JSON.parse(savedModules))
-
-    // Load quiz history
-    const savedQuizzes = localStorage.getItem("quizHistory")
-    if (savedQuizzes) setQuizHistory(JSON.parse(savedQuizzes))
-  }, [])
+    loadDashboardData()
+  }, [user])
 
   const handleUploadModule = (newModule) => {
     const updatedModules = [newModule, ...modules]
     setModules(updatedModules)
-    localStorage.setItem("uploadedModules", JSON.stringify(updatedModules))
+    setScopedJson('uploadedModules', updatedModules, user?.uid)
   }
 
   const handleDeleteModule = (moduleId) => {
     const updatedModules = modules.filter(m => m.id !== moduleId)
     setModules(updatedModules)
-    localStorage.setItem("uploadedModules", JSON.stringify(updatedModules))
+    setScopedJson('uploadedModules', updatedModules, user?.uid)
   }
 
   const handleEditModule = (moduleId, newTitle) => {
@@ -53,7 +75,7 @@ export default function Dashboard() {
       m.id === moduleId ? { ...m, title: newTitle } : m
     )
     setModules(updatedModules)
-    localStorage.setItem("uploadedModules", JSON.stringify(updatedModules))
+    setScopedJson('uploadedModules', updatedModules, user?.uid)
   }
 
   const ACCEPTED_TYPES = ["application/pdf", "text/plain", "text/markdown"]
@@ -92,7 +114,7 @@ export default function Dashboard() {
 
   // Derived stats
   const completedQuizzes = quizHistory.filter(q => q.status === "completed")
-  const ongoingQuizzes   = quizHistory.filter(q => q.status === "ongoing")
+  const ongoingQuizzes   = engineOngoingQuizzes
   const avgScore = completedQuizzes.length
     ? Math.round(completedQuizzes.reduce((sum, q) => sum + q.scorePercent, 0) / completedQuizzes.length)
     : 0
@@ -115,11 +137,19 @@ export default function Dashboard() {
     return `${days}d ago`
   }
 
+  const handleResumeQuiz = (quiz) => {
+    if (quiz?.moduleId) {
+      navigate(`/quiz-config/${quiz.moduleId}?attemptId=${quiz.attemptId}`)
+    } else {
+      navigate(`/quizzes`)
+    }
+  }
+
   const getFirstName = (name) => name.split(" ")[0]
 
   const overallProgress = modules.length
     ? Math.min(100, Math.round((completedQuizzes.length / Math.max(modules.length, 1)) * 100))
-    : 65
+    : 0
 
   return (
     <div className={styles.dashboardContainer}>
@@ -163,6 +193,13 @@ export default function Dashboard() {
             <div className={styles.statBody}>
               <div className={styles.statValue}>{totalQuestionsAnswered}</div>
               <div className={styles.statLabel}>Questions Answered</div>
+            </div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statIcon}>📬</div>
+            <div className={styles.statBody}>
+              <div className={styles.statValue}>{pendingInvites}</div>
+              <div className={styles.statLabel}>Pending Invitations</div>
             </div>
           </div>
         </div>
@@ -240,22 +277,22 @@ export default function Dashboard() {
             ) : (
               <div className={styles.quizList}>
                 {ongoingQuizzes.map((q) => (
-                  <div key={q.id} className={styles.quizItem}
-                    onClick={() => navigate(`/quizzes`)}
+                  <div key={q.attemptId || q.id} className={styles.quizItem}
+                    onClick={() => handleResumeQuiz(q)}
                   >
                     <div className={styles.quizItemLeft}>
-                      <p className={styles.quizItemTitle}>{q.moduleName}</p>
+                      <p className={styles.quizItemTitle}>{q.title || q.moduleName}</p>
                       <p className={styles.quizItemMeta}>
-                        Q{q.currentQuestion}/{q.totalQuestions} · {getTimeAgo(q.startedAt)}
+                        Q{q.answeredCount || q.currentQuestion}/{q.totalQuestions} · {getTimeAgo(q.startedAt)}
                       </p>
                       <div className={styles.quizMiniBar}>
                         <div
                           className={styles.quizMiniBarFill}
-                          style={{ width: `${(q.currentQuestion / q.totalQuestions) * 100}%`, background: "#0ea5e9" }}
+                          style={{ width: `${((q.answeredCount || q.currentQuestion) / Math.max(q.totalQuestions, 1)) * 100}%`, background: "#0ea5e9" }}
                         />
                       </div>
                     </div>
-                    <button className={styles.resumeBtn}>Resume →</button>
+                    <button className={styles.resumeBtn} onClick={(e) => { e.stopPropagation(); handleResumeQuiz(q) }}>Resume →</button>
                   </div>
                 ))}
               </div>

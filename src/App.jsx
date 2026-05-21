@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { db } from './services/database'
+import { NotificationProvider } from './context/NotificationContext'
+import NotificationCenter from './components/NotificationCenter'
 import PrivateRoute from './components/PrivateRoute'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -71,7 +73,7 @@ function App() {
   }
 
   return (
-    <>
+    <NotificationProvider>
       {dbError && (
         <div style={{
           background: '#fef3c7', borderBottom: '1px solid #fcd34d',
@@ -81,6 +83,7 @@ function App() {
           ⚠️ Offline storage unavailable — quiz results and downloads won't persist between sessions.
         </div>
       )}
+      <NotificationCenter />
       <Routes>
         <Route path="/"              element={<Login />} />
         <Route path="/dashboard"     element={<PrivateRoute><Dashboard /></PrivateRoute>} />
@@ -93,7 +96,7 @@ function App() {
         <Route path="/groups"        element={<PrivateRoute><Groups /></PrivateRoute>} />
         <Route path="/offline/:id"        element={<PrivateRoute><OfflineLessonViewer /></PrivateRoute>} />
       </Routes>
-    </>
+    </NotificationProvider>
   )
 }
 

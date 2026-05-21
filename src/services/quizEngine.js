@@ -1,5 +1,6 @@
 // services/quizEngine.js
 import { db } from './database'
+import { getScopedJson, setScopedJson } from './storage'
 
 export class QuizEngine {
   constructor() {
@@ -99,7 +100,7 @@ export class QuizEngine {
     return { isCorrect, correctAnswer: question.answer }
   }
 
-  async finishQuiz(attemptId) {
+  async finishQuiz(attemptId, userId) {
     const attempt = await db.get('quizAttempts', attemptId)
     if (!attempt) throw new Error('Attempt not found')
 
@@ -120,7 +121,7 @@ export class QuizEngine {
     await db.update('quizAttempts', attempt)
 
     // Save to quiz history
-    const quizHistory = JSON.parse(localStorage.getItem('quizHistory') || '[]')
+    const quizHistory = getScopedJson('quizHistory', userId, [])
     quizHistory.unshift({
       id: attempt.id,
       moduleName: quiz.title,
@@ -131,7 +132,7 @@ export class QuizEngine {
       status: 'completed',
       completedAt: attempt.completedAt
     })
-    localStorage.setItem('quizHistory', JSON.stringify(quizHistory))
+    setScopedJson('quizHistory', quizHistory, userId)
 
     return {
       score: correctAnswers,

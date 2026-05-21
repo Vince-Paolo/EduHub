@@ -1,7 +1,9 @@
 import { useState } from "react"
+import { useAuth } from "../context/AuthContext"
 import Navbar from "../components/Navbar"
 import ModuleUpload from "../components/ModuleUpload"
 import { useNavigate } from "react-router-dom"
+import { getScopedJson, setScopedJson } from "../services/storage"
 import styles from "./Quiz.module.css"
 
 const SAMPLE_QUESTIONS = [
@@ -63,6 +65,7 @@ const SAMPLE_QUESTIONS = [
 ]
 
 export default function Quiz() {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [uploadedModule, setUploadedModule] = useState(null)
   const [currentQuestion, setCurrentQuestion] = useState(0)
@@ -111,9 +114,9 @@ export default function Quiz() {
       status: "completed"
     }
     
-    const quizHistory = JSON.parse(localStorage.getItem("quizHistory") || "[]")
+    const quizHistory = getScopedJson('quizHistory', user?.uid, [])
     quizHistory.unshift(quizEntry)
-    localStorage.setItem("quizHistory", JSON.stringify(quizHistory))
+    setScopedJson('quizHistory', quizHistory, user?.uid)
     
     setShowResults(true)
   }

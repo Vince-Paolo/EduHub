@@ -1,5 +1,5 @@
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useState } from "react"
 import { useAuth } from "../context/AuthContext"
 import logoHorizontal from "../assets/logo-horizontal.svg"
 import styles from "./Login.module.css"
@@ -11,7 +11,13 @@ export default function Login() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const { login } = useAuth()
+  const { login, user } = useAuth()
+
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard", { replace: true })
+    }
+  }, [user, navigate])
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -19,8 +25,8 @@ export default function Login() {
     setLoading(true)
 
     try {
-      await login(email, password)
-      navigate("/dashboard")
+      await login(email.trim(), password)
+      navigate("/dashboard", { replace: true })
     } catch (err) {
       setError(err.message || "Invalid email or password.")
     } finally {

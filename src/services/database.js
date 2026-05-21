@@ -1,6 +1,6 @@
 // services/database.js
 const DB_NAME = 'EduHubDB'
-const DB_VERSION = 3
+const DB_VERSION = 7
 
 class DatabaseService {
   constructor() {
@@ -19,6 +19,7 @@ class DatabaseService {
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result
+        console.log('Upgrading IndexedDB', event.oldVersion, '->', event.newVersion)
 
         // Users store
         if (!db.objectStoreNames.contains('users')) {
@@ -119,6 +120,31 @@ class DatabaseService {
           noteStore.createIndex('groupId', 'groupId', { unique: false })
           noteStore.createIndex('authorId', 'authorId', { unique: false })
           noteStore.createIndex('createdAt', 'createdAt', { unique: false })
+        }
+
+        // Group invitations store
+        if (!db.objectStoreNames.contains('groupInvitations')) {
+          const inviteStore = db.createObjectStore('groupInvitations', { keyPath: 'id' })
+          inviteStore.createIndex('groupId', 'groupId', { unique: false })
+          inviteStore.createIndex('invitedUserId', 'invitedUserId', { unique: false })
+          inviteStore.createIndex('invitedEmail', 'invitedEmail', { unique: false })
+          inviteStore.createIndex('status', 'status', { unique: false })
+          inviteStore.createIndex('createdAt', 'createdAt', { unique: false })
+        } else {
+          const inviteStore = event.target.transaction.objectStore('groupInvitations')
+          const requiredIndexes = [
+            { name: 'groupId', keyPath: 'groupId' },
+            { name: 'invitedUserId', keyPath: 'invitedUserId' },
+            { name: 'invitedEmail', keyPath: 'invitedEmail' },
+            { name: 'status', keyPath: 'status' },
+            { name: 'createdAt', keyPath: 'createdAt' }
+          ]
+
+          requiredIndexes.forEach(({ name, keyPath }) => {
+            if (!inviteStore.indexNames.contains(name)) {
+              inviteStore.createIndex(name, keyPath, { unique: false })
+            }
+          })
         }
       }
     })

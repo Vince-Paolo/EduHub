@@ -7,7 +7,7 @@
 
 .groupItem {
   padding: 1rem;
-  background-color: var(--bg-color);
+  background-color: var(--bg-secondary);
   border: 1px solid transparent;
   border-radius: 8px;
   cursor: pointer;
@@ -23,7 +23,7 @@
 }
 
 .groupItem.active {
-  background-color: var(--primary-light);
+  background-color: rgba(34, 197, 94, 0.12);
   border-color: var(--primary-color);
 }
 

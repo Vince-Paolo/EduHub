@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, useLocation } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 import Navbar from "../components/Navbar"
 import styles from "./QuizConfig.module.css"
 import { quizEngine } from "../services/quizEngine"
 import { saveQuizResult, getModuleFile, blobToFile } from "../services/db"
+import { getScopedJson } from "../services/storage"
 import { db } from "../services/database"
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf"
 import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"
@@ -132,7 +134,9 @@ const QUIZ_TYPES = [
 ]
 
 export default function QuizConfig() {
+  const { user } = useAuth()
   const { id } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
 
@@ -155,6 +159,7 @@ export default function QuizConfig() {
   const [attemptId, setAttemptId]     = useState(null)
   const [genError, setGenError]       = useState("")
   const [ongoingQuizzes, setOngoingQuizzes] = useState([])
+  const [resumeAttemptId, setResumeAttemptId] = useState(null)
 
   const refreshOngoingQuizzes = async (moduleId) => {
     try {
@@ -166,10 +171,17 @@ export default function QuizConfig() {
   }
 
   useEffect(() => {
-    const saved = localStorage.getItem("uploadedModules")
-    if (saved) {
-      const all = JSON.parse(saved)
-      const current = all.find(m => String(m.id) === String(id)) || null
+    const params = new URLSearchParams(location.search)
+    const attemptIdParam = params.get('attemptId')
+    if (attemptIdParam) {
+      setResumeAttemptId(attemptIdParam)
+    }
+  }, [location.search])
+
+  useEffect(() => {
+    const saved = getScopedJson("uploadedModules", user?.uid, [])
+    if (saved.length) {
+      const current = saved.find(m => String(m.id) === String(id)) || null
       setModule(current)
 
       if (current) {
@@ -180,7 +192,16 @@ export default function QuizConfig() {
         refreshOngoingQuizzes(current.id)
       }
     }
-  }, [id])
+  }, [id, user?.uid])
+
+  useEffect(() => {
+    if (module && resumeAttemptId) {
+      const attemptId = Number(resumeAttemptId)
+      if (!Number.isNaN(attemptId)) {
+        handleResumeQuiz({ attemptId })
+      }
+    }
+  }, [module, resumeAttemptId])
 
   const processFile = (file) => {
     setUploadError("")
@@ -291,7 +312,7 @@ export default function QuizConfig() {
             scorePercent,
             completedAt: new Date().toISOString(),
             status: "completed"
-          })
+          }, user?.uid)
         } catch (err) {
           console.warn("Failed to save quiz result:", err)
         }

@@ -1,7 +1,9 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 import Sidebar from "./Sidebar"
 import UploadModal from "./UploadModal"
+import NotificationBell from "./NotificationBell"
 import logoIcon from "../assets/logo-icon.svg"
 import styles from "./Navbar.module.css"
 
@@ -10,8 +12,10 @@ export default function Navbar({ onUpload = () => {} }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const navigate = useNavigate()
+  const { logout } = useAuth()
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout()
     navigate("/")
   }
 
@@ -56,6 +60,7 @@ export default function Navbar({ onUpload = () => {} }) {
               <a href="/profile" className={styles.navLink}>
                 Profile
               </a>
+              <NotificationBell />
               <button 
                 className={styles.uploadNavBtn}
                 onClick={() => setIsUploadModalOpen(true)}

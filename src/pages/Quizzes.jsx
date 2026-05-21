@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
+import { getScopedJson } from "../services/storage"
 import Navbar from "../components/Navbar"
 import styles from "./Quizzes.module.css"
 import { quizEngine } from "../services/quizEngine"
 
 export default function Quizzes() {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [quizzes, setQuizzes] = useState([])
   const [ongoingQuizzes, setOngoingQuizzes] = useState([])
@@ -15,11 +18,9 @@ export default function Quizzes() {
     const loadQuizzes = async () => {
       setLoading(true)
       try {
-        // Load completed quizzes from localStorage
-        const savedQuizzes = localStorage.getItem("quizHistory")
-        if (savedQuizzes) {
-          setQuizzes(JSON.parse(savedQuizzes))
-        }
+        // Load completed quizzes from scoped local storage
+        const savedQuizzes = getScopedJson('quizHistory', user?.uid, [])
+        setQuizzes(savedQuizzes)
 
         // Load ongoing quizzes from IndexedDB
         const ongoing = await quizEngine.getAllOngoingQuizzes()

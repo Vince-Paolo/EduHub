@@ -50,7 +50,7 @@ export default function Register() {
     try {
       await register(form.fullName, form.username, form.email, form.password)
       setSubmitted(true)
-      setTimeout(() => navigate("/dashboard"), 1800)
+      setTimeout(() => navigate("/"), 1800)
     } catch (error) {
       setServerError(error.message || "Registration failed.")
     }
