@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from "react"
+import { useAuth } from "../context/AuthContext"
 import Navbar from "../components/Navbar"
 import ModuleCard from "../components/ModuleCard"
 import { saveModuleFile } from "../services/db"
+import { getScopedJson, setScopedJson } from "../services/storage"
 import styles from "./Modules.module.css"
 
 export default function Modules() {
+  const { user } = useAuth()
   const [modules, setModules] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isDragging, setIsDragging] = useState(false)
@@ -12,14 +15,14 @@ export default function Modules() {
   const fileInputRef = useRef(null)
 
   useEffect(() => {
-    const savedModules = localStorage.getItem("uploadedModules")
-    if (savedModules) setModules(JSON.parse(savedModules))
-  }, [])
+    const savedModules = getScopedJson('uploadedModules', user?.uid, [])
+    setModules(savedModules)
+  }, [user?.uid])
 
   const handleUploadModule = async (newModule, file) => {
     const updatedModules = [newModule, ...modules]
     setModules(updatedModules)
-    localStorage.setItem("uploadedModules", JSON.stringify(updatedModules))
+    setScopedJson('uploadedModules', updatedModules, user?.uid)
 
     if (file) {
       try {
@@ -33,7 +36,7 @@ export default function Modules() {
   const handleDeleteModule = (moduleId) => {
     const updatedModules = modules.filter(m => m.id !== moduleId)
     setModules(updatedModules)
-    localStorage.setItem("uploadedModules", JSON.stringify(updatedModules))
+    setScopedJson('uploadedModules', updatedModules, user?.uid)
   }
 
   const handleEditModule = (moduleId, newTitle) => {
@@ -41,7 +44,7 @@ export default function Modules() {
       m.id === moduleId ? { ...m, title: newTitle } : m
     )
     setModules(updatedModules)
-    localStorage.setItem("uploadedModules", JSON.stringify(updatedModules))
+    setScopedJson('uploadedModules', updatedModules, user?.uid)
   }
 
   const ACCEPTED_TYPES = ["application/pdf", "text/plain", "text/markdown"]

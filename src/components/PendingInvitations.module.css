@@ -1,0 +1,124 @@
+/* components/PendingInvitations.module.css */
+
+.container {
+  background-color: #f0f8ff;
+  border: 1px solid #b0d4ff;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.header {
+  margin-bottom: 1rem;
+}
+
+.header h3 {
+  margin: 0;
+  color: #0056b3;
+  font-size: 1rem;
+}
+
+.invitationsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.invitationItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+  border: 1px solid #d0e8ff;
+  border-radius: 6px;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+.invitationContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.groupName {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.groupDescription {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inviteDate {
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.acceptBtn,
+.rejectBtn {
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.acceptBtn {
+  background-color: #28a745;
+  color: white;
+}
+
+.acceptBtn:hover:not(:disabled) {
+  background-color: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.rejectBtn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.rejectBtn:hover:not(:disabled) {
+  background-color: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.acceptBtn:disabled,
+.rejectBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .invitationItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .acceptBtn,
+  .rejectBtn {
+    flex: 1;
+  }
+}

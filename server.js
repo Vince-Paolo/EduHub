@@ -1,5 +1,6 @@
 import fs from "fs"
 import path from "path"
+import { fileURLToPath } from "url"
 import express from "express"
 import cors from "cors"
 import dotenv from "dotenv"
@@ -11,12 +12,13 @@ import jwt from "jsonwebtoken"
 import syncRouter from "./api/sync.js"
 
 const app = express()
-const cwd = process.cwd()
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 const envCandidates = [
-  path.resolve(cwd, ".env.local"),
-  path.resolve(cwd, ".env"),
-  path.resolve(cwd, "..", ".env.local"),
-  path.resolve(cwd, "..", ".env")
+  path.resolve(__dirname, ".env.local"),
+  path.resolve(__dirname, ".env"),
+  path.resolve(__dirname, "..", ".env.local"),
+  path.resolve(__dirname, "..", ".env")
 ]
 
 const envPath = envCandidates.find(fs.existsSync)
@@ -63,14 +65,23 @@ function normalizeUserRow(row) {
   const email = row.email ?? row.email_address ?? row.user_email
   const username = row.username ?? row.user_name ?? row.name
   const fullName = row.full_name ?? row.fullName ?? row.name
+  const createdAtRaw = row.created_at ?? row.createdAt ?? row.joinDate
+  const createdAt = createdAtRaw instanceof Date ? createdAtRaw.toISOString() : createdAtRaw
   return {
     id,
     uid: id,
     email,
     username,
     fullName,
+    createdAt,
     password: row.password ?? row.pass ?? row.password_hash ?? row.pwd
   }
+}
+
+async function getUserById(id) {
+  if (!id) return null
+  const rows = await dbQuery("SELECT * FROM users WHERE id = ? LIMIT 1", [id])
+  return normalizeUserRow(rows[0])
 }
 
 async function getUserColumns() {
@@ -97,30 +108,30 @@ async function createUser({ fullName, username, email, password }) {
     placeholders.push('?')
   }
 
-  addField('email', email)
+  const normalizedEmail = normalizeEmail(email)
+  const normalizedUsername = normalizeString(username)
+  const normalizedFullName = normalizeString(fullName)
+
+  addField('email', normalizedEmail)
   addField('password', await bcrypt.hash(password, 10))
 
-  if (username && columns.includes('username')) {
-    addField('username', username)
+  const usernameField = chooseColumn(columns, ['username', 'user_name', 'name'])
+  const fullNameField = chooseColumn(columns, ['full_name', 'fullName', 'name'])
+
+  if (normalizedUsername && usernameField) {
+    // Prefer explicit username column, otherwise fall back to the shared name field.
+    addField(usernameField, normalizedUsername)
   }
 
-  if (fullName && columns.includes('full_name')) {
-    addField('full_name', fullName)
-  } else if (fullName && columns.includes('fullName')) {
-    addField('fullName', fullName)
-  } else if (fullName && !columns.includes('full_name') && !columns.includes('fullName') && columns.includes('name')) {
-    addField('name', fullName)
+  if (normalizedFullName && fullNameField && fullNameField !== usernameField) {
+    addField(fullNameField, normalizedFullName)
+  } else if (normalizedFullName && !normalizedUsername && fullNameField && fullNameField === 'name') {
+    addField('name', normalizedFullName)
   }
 
   const sql = `INSERT INTO users (${fieldNames.join(',')}) VALUES (${placeholders.join(',')})`
   const result = await dbQuery(sql, values)
-  return {
-    id: result.insertId,
-    uid: result.insertId,
-    email,
-    username,
-    fullName
-  }
+  return getUserById(result.insertId)
 }
 
 async function dbQuery(sql, params = []) {
@@ -128,15 +139,33 @@ async function dbQuery(sql, params = []) {
   return rows
 }
 
+function normalizeString(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function normalizeEmail(value) {
+  return normalizeString(value).toLowerCase()
+}
+
 async function getUserByEmail(email) {
-  const rows = await dbQuery("SELECT * FROM users WHERE email = ? LIMIT 1", [email])
+  const normalizedEmail = normalizeEmail(email)
+  if (!normalizedEmail) return null
+  const rows = await dbQuery("SELECT * FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1", [normalizedEmail])
   return normalizeUserRow(rows[0])
 }
 
 async function getUserByIdentifier(identifier) {
-  let user = await getUserByEmail(identifier)
-  if (user) return user
-  const rows = await dbQuery("SELECT * FROM users WHERE username = ? LIMIT 1", [identifier])
+  const normalizedIdentifier = normalizeString(identifier)
+  if (!normalizedIdentifier) return null
+
+  const emailUser = await getUserByEmail(normalizedIdentifier)
+  if (emailUser) return emailUser
+
+  const columns = await getUserColumns()
+  const usernameField = chooseColumn(columns, ['username', 'user_name', 'name'])
+  if (!usernameField) return null
+
+  const rows = await dbQuery(`SELECT * FROM users WHERE LOWER(${usernameField}) = LOWER(?) LIMIT 1`, [normalizedIdentifier])
   return normalizeUserRow(rows[0])
 }
 
@@ -181,11 +210,12 @@ app.use(cors({ origin: clientOrigin, credentials: true }))
 app.use(express.json())
 app.use(cookieParser())
 
+const isProduction = process.env.NODE_ENV === "production"
 const sessionCookieOptions = {
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
   path: "/"
 }
 
@@ -227,27 +257,33 @@ const authenticate = async (req, res, next) => {
   return res.status(401).json({ error: "Unauthorized. Please sign in." })
 }
 
-app.get('/auth/me', (req, res) => {
+app.get('/auth/me', async (req, res) => {
   const sessionToken = req.cookies?.session || null
   const decoded = sessionToken ? verifySessionToken(sessionToken) : null
-  return res.json({ user: decoded || null })
+  if (!decoded?.id) {
+    return res.json({ user: null })
+  }
+  const user = await getUserById(decoded.id)
+  return res.json({ user: user || null })
 })
 
 app.post('/login', async (req, res) => {
-  const { email, password } = req.body
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required.' })
+  const identifier = normalizeString(req.body.email || req.body.identifier || req.body.username)
+  const password = normalizeString(req.body.password)
+
+  if (!identifier || !password) {
+    return res.status(400).json({ error: 'Email/username and password are required.' })
   }
 
   try {
-    const user = await getUserByIdentifier(email)
+    const user = await getUserByIdentifier(identifier)
     if (!user || !(await verifyPassword(password, user.password))) {
       return res.status(401).json({ error: 'Invalid email or password.' })
     }
 
     const token = createSessionToken(user)
     res.cookie('session', token, sessionCookieOptions)
-    return res.json({ user: { id: user.id, uid: user.uid, email: user.email, username: user.username, fullName: user.fullName } })
+    return res.json({ user: { id: user.id, uid: user.uid, email: user.email, username: user.username, fullName: user.fullName, createdAt: user.createdAt } })
   } catch (err) {
     console.error('Login error:', err)
     return res.status(500).json({ error: 'Unable to login. Please try again later.' })
@@ -255,7 +291,11 @@ app.post('/login', async (req, res) => {
 })
 
 app.post('/register', async (req, res) => {
-  const { fullName, username, email, password } = req.body
+  const fullName = normalizeString(req.body.fullName)
+  const username = normalizeString(req.body.username)
+  const email = normalizeEmail(req.body.email)
+  const password = normalizeString(req.body.password)
+
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required.' })
   }
@@ -267,9 +307,7 @@ app.post('/register', async (req, res) => {
     }
 
     const newUser = await createUser({ fullName, username, email, password })
-    const token = createSessionToken(newUser)
-    res.cookie('session', token, sessionCookieOptions)
-    return res.status(201).json({ user: { id: newUser.id, uid: newUser.uid, email: newUser.email, username: newUser.username, fullName: newUser.fullName } })
+    return res.status(201).json({ user: { id: newUser.id, uid: newUser.uid, email: newUser.email, username: newUser.username, fullName: newUser.fullName, createdAt: newUser.createdAt } })
   } catch (err) {
     console.error('Register error:', err)
     return res.status(500).json({ error: 'Unable to register. Please try again later.' })

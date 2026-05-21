@@ -70,8 +70,6 @@ export function AuthProvider({ children }) {
     }
 
     const data = await response.json()
-    setUser(data.user)
-    initSyncQueue(data.user.uid)
     return data.user
   }
 

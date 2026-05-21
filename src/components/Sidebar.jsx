@@ -1,14 +1,22 @@
 // components/Sidebar.jsx
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 import styles from "./Sidebar.module.css"
 
 export default function Sidebar({ isOpen, onClose, onUploadClick = () => {} }) {
   const navigate = useNavigate()
+  const { logout } = useAuth()
 
   const handleNavigate = (path) => {
     navigate(path)
     onClose()
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    onClose()
+    navigate("/")
   }
 
   return (
@@ -100,7 +108,7 @@ export default function Sidebar({ isOpen, onClose, onUploadClick = () => {} }) {
         <div className={styles.footer}>
           <button 
             className={styles.logoutMenuBtn}
-            onClick={() => handleNavigate("/")}
+            onClick={handleLogout}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

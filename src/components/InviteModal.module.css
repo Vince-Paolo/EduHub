@@ -1,0 +1,325 @@
+/* components/InviteModal.module.css */
+
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-color);
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.closeBtn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-color);
+}
+
+.form {
+  padding: 1.5rem;
+}
+
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.formGroup input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.formGroup input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.formGroup input:disabled {
+  background-color: var(--bg-hover);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.formGroup input::placeholder {
+  color: var(--text-secondary);
+}
+
+.error {
+  background-color: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.success {
+  background-color: rgba(34, 197, 94, 0.08);
+  color: var(--primary-dark);
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--primary-light);
+}
+
+.sentList {
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sentList h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.invitesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inviteItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.email {
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+.badge {
+  display: inline-block;
+  background-color: rgba(34, 197, 94, 0.12);
+  color: var(--primary-dark);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--primary-light);
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+}
+
+.cancelBtn,
+.submitBtn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelBtn {
+  background-color: var(--bg-hover);
+  color: var(--text-color);
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background-color: var(--border-color);
+}
+
+.submitBtn {
+  background-color: var(--primary-color);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.2);
+}
+
+.submitBtn:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+  box-shadow: 0 8px 15px -3px rgba(34, 197, 94, 0.3);
+  transform: translateY(-1px);
+}
+
+.submitBtn:disabled,
+.cancelBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hint {
+  text-align: center;
+  padding: 0 1.5rem 1rem 1.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ── Dark mode overrides ───────────────────────────────────────────────────
+   Theme variables handle most colours automatically. These rules patch the
+   few places that use colours not covered by theme.css (error reds, shadows,
+   backdrop tint) so they look correct in dark mode too.
+   ──────────────────────────────────────────────────────────────────────── */
+
+:root[data-theme="dark"] .backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+:root[data-theme="dark"] .modal {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="dark"] .formGroup input {
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="dark"] .formGroup input:focus {
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.15);
+}
+
+:root[data-theme="dark"] .error {
+  background-color: rgba(220, 38, 38, 0.15);
+  color: #fca5a5;
+  border-color: rgba(220, 38, 38, 0.35);
+}
+
+:root[data-theme="dark"] .success {
+  background-color: rgba(74, 222, 128, 0.1);
+  color: var(--primary-light);
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+:root[data-theme="dark"] .badge {
+  background-color: rgba(74, 222, 128, 0.15);
+  color: var(--primary-light);
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+:root[data-theme="dark"] .submitBtn {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .submitBtn:hover:not(:disabled) {
+  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+/* Also support prefers-color-scheme for users without the data-theme attribute */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .backdrop {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+
+  :root:not([data-theme="light"]) .modal {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  }
+
+  :root:not([data-theme="light"]) .formGroup input {
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  :root:not([data-theme="light"]) .formGroup input:focus {
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.15);
+  }
+
+  :root:not([data-theme="light"]) .error {
+    background-color: rgba(220, 38, 38, 0.15);
+    color: #fca5a5;
+    border-color: rgba(220, 38, 38, 0.35);
+  }
+
+  :root:not([data-theme="light"]) .success {
+    background-color: rgba(74, 222, 128, 0.1);
+    color: var(--primary-light);
+    border-color: rgba(74, 222, 128, 0.3);
+  }
+
+  :root:not([data-theme="light"]) .badge {
+    background-color: rgba(74, 222, 128, 0.15);
+    color: var(--primary-light);
+    border-color: rgba(74, 222, 128, 0.3);
+  }
+}

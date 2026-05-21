@@ -4,6 +4,7 @@
 // QuizConfig.jsx and ModuleCard.jsx import from "../services/db"
 // ─────────────────────────────────────────────────────────────────────────────
 import { db } from './database'
+import { getScopedJson, setScopedJson } from './storage'
 
 // Ensure DB is initialised before any call.
 let _initPromise = null
@@ -99,15 +100,20 @@ export async function deleteModuleFile(moduleId) {
 /**
  * Persist a completed quiz result to IndexedDB and sync to localStorage.
  */
-export async function saveQuizResult(result) {
+export async function saveQuizResult(result, userId) {
   await ensureReady()
-  const record = { ...result, id: Date.now(), savedAt: new Date().toISOString() }
+  const record = {
+    ...result,
+    id: Date.now(),
+    userId: userId || result.userId || null,
+    savedAt: new Date().toISOString()
+  }
 
   await db.add('quizAttempts', record).catch(() => db.update('quizAttempts', record))
 
   // Keep localStorage in sync for Dashboard / Quizzes pages
-  const existing = JSON.parse(localStorage.getItem('quizHistory') || '[]')
-  localStorage.setItem('quizHistory', JSON.stringify([record, ...existing]))
+  const existing = getScopedJson('quizHistory', userId, [])
+  setScopedJson('quizHistory', [record, ...existing], userId)
 
   return record.id
 }

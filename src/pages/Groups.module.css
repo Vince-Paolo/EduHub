@@ -1,7 +1,7 @@
 /* pages/Groups.module.css */
 .mainLayout {
   min-height: calc(100vh - 64px);
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  background: var(--page-background);
   transition: background 0.3s ease;
 }
 
@@ -93,7 +93,7 @@
 
 .header {
   padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, var(--bg-secondary), #f9fafb);
+  background: var(--header-background);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
@@ -136,6 +136,43 @@
   color: var(--primary-color);
 }
 
+.headerButtons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.membersToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: var(--primary-color);
+  cursor: pointer;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.membersToggle svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.membersToggle:hover {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.membersToggle.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
 /* Tabs */
 .tabs {
   display: flex;
@@ -170,13 +207,13 @@
 
 .tab:hover {
   color: var(--primary-color);
-  background-color: rgba(34, 197, 94, 0.05);
+  background-color: var(--tab-hover-bg);
 }
 
 .tab.active {
   color: var(--primary-color);
   border-bottom-color: var(--primary-color);
-  background: linear-gradient(to bottom, rgba(34, 197, 94, 0.05), transparent);
+  background: var(--tab-active-bg);
 }
 
 .tabContent {
@@ -185,6 +222,30 @@
   padding: 1.5rem;
   background: var(--bg-secondary);
   transition: background 0.3s ease;
+}
+
+.contentWrapper {
+  display: flex;
+  flex: 1;
+  gap: 1.5rem;
+  overflow: hidden;
+}
+
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  transition: background 0.3s ease;
+}
+
+.membersPanel {
+  width: 300px;
+  border-left: 1px solid var(--border-color);
+  padding: 1.5rem;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  flex-shrink: 0;
 }
 
 /* Empty State */
@@ -247,7 +308,7 @@
   align-items: center;
   justify-content: center;
   height: calc(100vh - 64px);
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  background: var(--loading-background);
   transition: background 0.3s ease;
 }
 

@@ -10,6 +10,8 @@ import GroupChat from '../components/GroupChat'
 import DiscussionForum from '../components/DiscussionForum'
 import AnnouncementBoard from '../components/AnnouncementBoard'
 import ContentSharing from '../components/ContentSharing'
+import GroupMembers from '../components/GroupMembers'
+import PendingInvitations from '../components/PendingInvitations'
 import styles from './Groups.module.css'
 
 export default function Groups() {
@@ -20,6 +22,7 @@ export default function Groups() {
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [showMembers, setShowMembers] = useState(false)
 
   useEffect(() => {
     loadGroups()
@@ -105,6 +108,10 @@ export default function Groups() {
               </button>
             </div>
             
+            <PendingInvitations 
+              onInvitationHandled={loadGroups}
+            />
+            
             <GroupList 
               groups={groups}
               selectedGroup={selectedGroup}
@@ -121,14 +128,29 @@ export default function Groups() {
                     <h1>{selectedGroup.name}</h1>
                     <p>{selectedGroup.description}</p>
                   </div>
-                  <button 
-                    className={styles.menuToggle}
-                    onClick={() => setIsSidebarOpen(true)}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                  </button>
+                  <div className={styles.headerButtons}>
+                    <button 
+                      className={`${styles.membersToggle} ${showMembers ? styles.active : ''}`}
+                      onClick={() => setShowMembers(!showMembers)}
+                      title="Toggle members panel"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                      Members
+                    </button>
+                    <button 
+                      className={styles.menuToggle}
+                      onClick={() => setIsSidebarOpen(true)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path d="M4 6h16M4 12h16M4 18h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 <div className={styles.tabs}>
@@ -158,11 +180,23 @@ export default function Groups() {
                   </button>
                 </div>
 
-                <div className={styles.tabContent}>
-                  {activeTab === 'chat' && <GroupChat groupId={selectedGroup.id} />}
-                  {activeTab === 'forum' && <DiscussionForum groupId={selectedGroup.id} />}
-                  {activeTab === 'announcements' && <AnnouncementBoard groupId={selectedGroup.id} />}
-                  {activeTab === 'content' && <ContentSharing groupId={selectedGroup.id} />}
+                <div className={styles.contentWrapper}>
+                  <div className={styles.tabContent}>
+                    {activeTab === 'chat' && <GroupChat groupId={selectedGroup.id} />}
+                    {activeTab === 'forum' && <DiscussionForum groupId={selectedGroup.id} />}
+                    {activeTab === 'announcements' && <AnnouncementBoard groupId={selectedGroup.id} />}
+                    {activeTab === 'content' && <ContentSharing groupId={selectedGroup.id} />}
+                  </div>
+
+                  {showMembers && (
+                    <div className={styles.membersPanel}>
+                      <GroupMembers 
+                        groupId={selectedGroup.id}
+                        groupName={selectedGroup.name}
+                        createdBy={selectedGroup.createdBy}
+                      />
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
