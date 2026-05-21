@@ -11,7 +11,7 @@ import Quizzes from './pages/Quizzes'
 import Profile from './pages/Profile'
 import Quiz from './pages/Quiz'
 import Register from './pages/Register'
-import QuizConfig from './pages/QuizConfig'
+import QuizConfig from "./pages/quizConfig";
 import Groups from './pages/Groups'
 import OfflineLessonViewer from './components/OfflineLessonViewer'
 
