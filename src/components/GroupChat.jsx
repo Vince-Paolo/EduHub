@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { collaborationService } from '../services/collaborationService'
+import { getUsersByIds } from '../services/userService'
 import styles from './GroupChat.module.css'
 
 export default function GroupChat({ groupId }) {
@@ -9,6 +10,7 @@ export default function GroupChat({ groupId }) {
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
   const [members, setMembers] = useState([])
+  const [memberProfiles, setMemberProfiles] = useState({})
   const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef(null)
 
@@ -43,8 +45,25 @@ export default function GroupChat({ groupId }) {
     try {
       const membersList = await collaborationService.getGroupMembers(groupId)
       setMembers(membersList)
+      await loadMemberProfiles(membersList)
     } catch (error) {
       console.error('Failed to load members:', error)
+    }
+  }
+
+  const loadMemberProfiles = async (membersList) => {
+    const ids = Array.from(new Set(membersList.map(member => String(member.userId)).filter(Boolean)))
+    if (!ids.length) {
+      setMemberProfiles({})
+      return
+    }
+
+    try {
+      const users = await getUsersByIds(ids)
+      setMemberProfiles(Object.fromEntries(users.map((user) => [String(user.id), user])))
+    } catch (error) {
+      console.error('Failed to load member profiles:', error)
+      setMemberProfiles({})
     }
   }
 
@@ -96,7 +115,11 @@ export default function GroupChat({ groupId }) {
               <div className={styles.messageContent}>
                 <div className={styles.messageMeta}>
                   <span className={styles.author}>
-                    {message.userId === user.uid ? 'You' : message.userId}
+                    {String(message.userId) === String(user.uid)
+                      ? 'You'
+                      : memberProfiles[String(message.userId)]?.fullName
+                        || memberProfiles[String(message.userId)]?.username
+                        || message.userId}
                   </span>
                   <span className={styles.timestamp}>
                     {new Date(message.createdAt).toLocaleTimeString()}
