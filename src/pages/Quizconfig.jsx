@@ -7,6 +7,7 @@ import { quizEngine } from "../services/quizEngine"
 import { saveQuizResult, getModuleFile, blobToFile } from "../services/db"
 import { getScopedJson } from "../services/storage"
 import { db } from "../services/database"
+import { apiFetch } from "../services/api"
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf"
 import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"
 
@@ -98,9 +99,8 @@ async function callClaude(file, quizType, count) {
   // Call backend endpoint via same-origin /api path
   try {
     // Use secure HTTP-only session cookie created at login.
-    const response = await fetch("/api/generate-quiz", {
+    const response = await apiFetch("/api/generate-quiz", {
       method: "POST",
-      credentials: "include",
       headers: {
         "Content-Type": "application/json"
       },

@@ -1,0 +1,484 @@
+.mfaSettingsContainer {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.heading {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 30px;
+  color: #333;
+}
+
+.errorAlert,
+.successAlert {
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  font-weight: 500;
+  animation: slideDown 0.3s ease;
+}
+
+.errorAlert {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+}
+
+.successAlert {
+  background-color: #efe;
+  border: 1px solid #cfc;
+  color: #3c3;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.loadingContainer,
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: #666;
+  font-size: 16px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f0f0f0;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.statusCard {
+  background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+  border: 1px solid #667eea30;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.statusCard h3 {
+  margin: 0 0 15px;
+  color: #333;
+  font-size: 18px;
+}
+
+.statusItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.statusLabel {
+  font-weight: 500;
+  color: #666;
+}
+
+.statusBadge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.statusBadge.enabled {
+  background-color: #eaf8f5;
+  color: #00a693;
+}
+
+.statusBadge.disabled {
+  background-color: #ffe8e8;
+  color: #e60000;
+}
+
+.methodsSection {
+  margin-bottom: 30px;
+}
+
+.methodsSection h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 20px;
+  color: #333;
+}
+
+.methodsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.methodCard {
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.methodCard:hover {
+  border-color: #667eea;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.1);
+}
+
+.methodHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.icon {
+  font-size: 28px;
+}
+
+.methodName {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.methodDescription {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 15px;
+  line-height: 1.5;
+}
+
+.enabledBadge {
+  display: inline-block;
+  background-color: #eaf8f5;
+  color: #00a693;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.enableButton,
+.disableButton {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.enableButton {
+  background-color: #667eea;
+  color: white;
+}
+
+.enableButton:hover:not(:disabled) {
+  background-color: #764ba2;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.enableButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.disableButton {
+  background-color: #f0f0f0;
+  color: #e60000;
+  border: 1px solid #e0e0e0;
+}
+
+.disableButton:hover {
+  background-color: #ffe8e8;
+  border-color: #e60000;
+}
+
+.setupForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.phoneInput {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+}
+
+.phoneInput:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.nextButton,
+.confirmButton {
+  background-color: #667eea;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nextButton:hover,
+.confirmButton:hover:not(:disabled) {
+  background-color: #764ba2;
+}
+
+.nextButton:disabled,
+.confirmButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  background-color: #f0f0f0;
+  color: #666;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancelButton:hover {
+  background-color: #e0e0e0;
+}
+
+.setupModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.setupContent {
+  background: white;
+  border-radius: 12px;
+  padding: 40px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.setupContent h3 {
+  font-size: 24px;
+  margin: 0 0 20px;
+  color: #333;
+}
+
+.setupContent h4 {
+  font-size: 16px;
+  margin: 20px 0 10px;
+  color: #333;
+}
+
+.setupContent p {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 15px;
+}
+
+.totpSetup,
+.otpSetup {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.qrCodeContainer {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  margin: 15px 0;
+}
+
+.qrCodeContainer img {
+  max-width: 250px;
+  height: auto;
+}
+
+.secretBox {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 10px 0;
+  overflow-x: auto;
+}
+
+.secretBox code {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  letter-spacing: 1px;
+  word-break: break-all;
+}
+
+.backupCodesDisplay {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 6px;
+  margin: 10px 0;
+}
+
+.backupCodesDisplay code {
+  background-color: white;
+  border: 1px solid #ddd;
+  padding: 8px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.downloadButton {
+  background-color: #667eea;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 15px 0;
+}
+
+.downloadButton:hover {
+  background-color: #764ba2;
+}
+
+.verificationInput {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 18px;
+  letter-spacing: 4px;
+  text-align: center;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  margin: 15px 0;
+}
+
+.verificationInput:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.setupButtonGroup {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.setupButtonGroup button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.recommendationsCard {
+  background: linear-gradient(135deg, #f0f8ff 0%, #f0f0ff 100%);
+  border: 1px solid #667eea30;
+  border-radius: 12px;
+  padding: 25px;
+  margin-top: 30px;
+}
+
+.recommendationsCard h3 {
+  font-size: 18px;
+  margin: 0 0 15px;
+  color: #333;
+}
+
+.recommendationsCard ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recommendationsCard li {
+  font-size: 14px;
+  color: #666;
+  padding: 8px 0;
+  line-height: 1.6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .mfaSettingsContainer {
+    padding: 20px 15px;
+  }
+
+  .heading {
+    font-size: 24px;
+  }
+
+  .methodsList {
+    grid-template-columns: 1fr;
+  }
+
+  .setupContent {
+    padding: 25px 20px;
+  }
+
+  .backupCodesDisplay {
+    grid-template-columns: 1fr;
+  }
+}

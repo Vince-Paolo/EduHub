@@ -22,6 +22,8 @@
  * }
  */
 
+import { apiFetch } from './api'
+
 const LS_KEY_PREFIX  = 'eduhub_syncqueue_';
 const API_SYNC_URL   = '/api/sync';
 const MAX_RETRIES    = 5;
@@ -164,10 +166,9 @@ async function trySend(userId, item) {
       headers['Authorization'] = `Bearer ${idToken}`;
     }
 
-    const res = await fetch(API_SYNC_URL, {
+    const res = await apiFetch(API_SYNC_URL, {
       method: 'POST',
       headers,
-      credentials: 'include', // Send session cookie
       body: JSON.stringify({ userId, ...item }),
     });
     return res.ok;

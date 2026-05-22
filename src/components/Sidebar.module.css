@@ -6,7 +6,7 @@
   top: 0;
   width: 280px;
   height: 100vh;
-  background: linear-gradient(135deg, #15803d 0%, #22c55e 100%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
   color: white;
   transition: left 0.3s ease;
   z-index: 999;
@@ -34,7 +34,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .title {
@@ -89,7 +89,7 @@
 }
 
 .menuItem:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.08);
   padding-left: 2rem;
 }
 
@@ -105,7 +105,7 @@
 
 /* Active state for current page */
 .menuItem.active {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.14);
   border-left: 3px solid white;
   padding-left: calc(1.5rem - 3px);
 }
@@ -122,8 +122,8 @@
   align-items: center;
   gap: 1rem;
   padding: 0.875rem 1rem;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  border: 1px solid #991b1b;
+  background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+  border: 1px solid var(--danger-dark);
   border-radius: 0.5rem;
   color: white;
   font-size: 1rem;
@@ -133,9 +133,9 @@
 }
 
 .logoutMenuBtn:hover {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  background: linear-gradient(135deg, var(--danger-dark) 0%, #7f1d1d 100%);
   border-color: #7f1d1d;
-  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.25);
   transform: translateY(-1px);
 }
 
@@ -145,11 +145,7 @@
   flex-shrink: 0;
 }
 
-/* Dark Mode Styles */
-[data-theme="dark"] .sidebar {
-  background: linear-gradient(135deg, #0a3d1a 0%, #14532d 100%);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-}
+/* Dark mode appearance is handled by theme variables in theme.css */
 
 @keyframes fadeIn {
   from {
@@ -165,19 +161,9 @@
   width: 4px;
 }
 
-.sidebar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-}
-
-.sidebar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
+.sidebar::-webkit-scrollbar-track { background: var(--border-color); border-radius: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--primary-light); border-radius: 4px; }
+.sidebar::-webkit-scrollbar-thumb:hover { background: var(--primary-color); }
 
 @media (max-width: 768px) {
   .sidebar {

@@ -3,6 +3,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { initSyncQueue, teardownSyncQueue } from "../services/syncQueue"
+import { apiFetch } from "../services/api"
 
 const AuthContext = createContext(null)
 
@@ -12,7 +13,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     async function checkSession() {
       try {
-        const response = await fetch('/auth/me', { credentials: 'include' })
+        const response = await apiFetch('/auth/me')
         if (!response.ok) {
           setUser(null)
           teardownSyncQueue()
@@ -38,9 +39,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = async (email, password) => {
-    const response = await fetch('/login', {
+    const response = await apiFetch('/login', {
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     })
@@ -51,15 +51,24 @@ export function AuthProvider({ children }) {
     }
 
     const data = await response.json()
+
+    if (data.mfaRequired) {
+      return data
+    }
+
     setUser(data.user)
     initSyncQueue(data.user.uid)
     return data.user
   }
 
+  const setUserAfterMFA = (user) => {
+    setUser(user)
+    initSyncQueue(user.uid)
+  }
+
   const register = async (fullName, username, email, password) => {
-    const response = await fetch('/register', {
+    const response = await apiFetch('/register', {
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fullName, username, email, password })
     })
@@ -75,7 +84,7 @@ export function AuthProvider({ children }) {
 
   const logoutSecure = async () => {
     try {
-      await fetch('/logout', { method: 'POST', credentials: 'include' })
+      await apiFetch('/logout', { method: 'POST' })
     } catch (e) {
       // ignore network error
     }
@@ -84,7 +93,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout: logoutSecure, loading: user === undefined }}>
+    <AuthContext.Provider value={{ user, login, register, setUserAfterMFA, logout: logoutSecure, loading: user === undefined }}>
       {children}
     </AuthContext.Provider>
   )

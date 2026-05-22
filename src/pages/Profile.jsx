@@ -1,5 +1,6 @@
 // pages/Profile.jsx
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { getScopedJson, setScopedJson } from "../services/storage"
 import Navbar from "../components/Navbar"
@@ -112,6 +113,8 @@ export default function Profile() {
   const handleEditChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
+
+  const navigate = useNavigate()
 
   const handleSaveProfile = () => {
     const updated = {
@@ -380,6 +383,12 @@ export default function Profile() {
                     }}
                   >
                     Settings
+                  </button>
+                  <button 
+                    className={`${styles.btn} ${styles.btnSecondary}`}
+                    onClick={() => navigate('/mfa')}
+                  >
+                    MFA Settings
                   </button>
                 </>
               )}

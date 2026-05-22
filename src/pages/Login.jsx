@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import MFAVerification from "../components/MFAVerification"
 import logoHorizontal from "../assets/logo-horizontal.svg"
 import styles from "./Login.module.css"
 
@@ -10,6 +11,11 @@ export default function Login() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  
+  // MFA states
+  const [mfaRequired, setMfaRequired] = useState(false)
+  const [tempUser, setTempUser] = useState(null)
+  const [mfaMethods, setMfaMethods] = useState({})
 
   const { login, user } = useAuth()
 
@@ -25,13 +31,47 @@ export default function Login() {
     setLoading(true)
 
     try {
-      await login(email.trim(), password)
+      const data = await login(email.trim(), password)
+
+      if (data?.mfaRequired) {
+        setTempUser(data.user)
+        setMfaMethods(data.mfaMethods || {})
+        setMfaRequired(true)
+        return
+      }
+
       navigate("/dashboard", { replace: true })
     } catch (err) {
       setError(err.message || "Invalid email or password.")
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleMFASuccess = (user) => {
+    // User has been authenticated and session cookie set
+    // Update auth context and redirect
+    setMfaRequired(false)
+    navigate("/dashboard", { replace: true })
+  }
+
+  const handleMFACancel = () => {
+    setMfaRequired(false)
+    setTempUser(null)
+    setMfaMethods({})
+    setError("")
+  }
+
+  if (mfaRequired && tempUser) {
+    return (
+      <MFAVerification
+        userId={tempUser.id}
+        mfaMethods={mfaMethods}
+        onSuccess={handleMFASuccess}
+        onCancel={handleMFACancel}
+        email={tempUser.email}
+      />
+    )
   }
 
   return (
