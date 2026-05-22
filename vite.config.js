@@ -4,6 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   server: {
+    host: '127.0.0.1',
+    historyApiFallback: true,
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
@@ -25,7 +27,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       },
-      '/auth/me': {
+      '/auth': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false
+      },
+      '/mfa': {
         target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false
@@ -45,6 +52,12 @@ export default defineConfig({
         display: 'standalone',
         start_url: '/',
         icons: [
+          {
+            src: '/logo-icon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
+          },
           {
             src: '/icon-192.png',
             sizes: '192x192',
