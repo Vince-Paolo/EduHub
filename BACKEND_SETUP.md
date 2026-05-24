@@ -23,16 +23,33 @@ Copy the `.env.example` file to `.env.local`:
 cp .env.example .env.local
 ```
 
-Then edit `.env.local` and add your Apify API token:
+Then edit `.env.local` and add your Apify API token plus your email/OAuth settings:
 ```
-VITE_APIFY_API_TOKEN=your_actual_token_here
 PORT=5000
+VITE_APIFY_API_TOKEN=your_actual_token_here
+
+# Gmail OAuth (preferred) or SMTP credentials for sending Email OTPs
+GMAIL_OAUTH_CLIENT_ID=your_gmail_oauth_client_id
+GMAIL_OAUTH_CLIENT_SECRET=your_gmail_oauth_client_secret
+GMAIL_OAUTH_REFRESH_TOKEN=your_gmail_oauth_refresh_token
+GMAIL_OAUTH_ACCESS_TOKEN=your_gmail_oauth_access_token
+GMAIL_OAUTH_EMAIL=your_email@gmail.com
+
+# Optional SMTP fallback
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASSWORD=your_email_app_password
+EMAIL_SERVICE=gmail
 ```
 
 **How to get your Apify API token:**
 1. Go to https://console.apify.com/account/integrations
 2. Copy your API token
 3. Paste it into the `.env.local` file
+
+**How to enable Gmail OTP delivery:**
+- Preferred: configure Gmail OAuth values (`GMAIL_OAUTH_*`)
+- Fallback: use `EMAIL_USER` + `EMAIL_PASSWORD` with a Gmail app password
+- If you do not set these, the app may log OTPs to the console instead of sending real email
 
 ### 3. Run the Application
 
