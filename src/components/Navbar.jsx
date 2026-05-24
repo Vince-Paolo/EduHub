@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import Sidebar from "./Sidebar"
 import UploadModal from "./UploadModal"
+import LogoutConfirmModal from "./LogoutConfirmModal"
 import NotificationBell from "./NotificationBell"
 import logoIcon from "../assets/logo-icon.svg"
 import styles from "./Navbar.module.css"
@@ -11,10 +12,16 @@ export default function Navbar({ onUpload = () => {} }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const navigate = useNavigate()
   const { logout } = useAuth()
 
   const handleLogout = async () => {
+    setShowLogoutConfirm(true)
+  }
+
+  const handleConfirmLogout = async () => {
+    setShowLogoutConfirm(false)
     await logout()
     navigate("/")
   }
@@ -26,6 +33,11 @@ export default function Navbar({ onUpload = () => {} }) {
         setIsUploadModalOpen(true)
       }} />
       <UploadModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} onUpload={onUpload} />
+      <LogoutConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleConfirmLogout}
+      />
       
       <nav className={styles.navbar}>
         <div className={styles.container}>

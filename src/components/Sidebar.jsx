@@ -2,18 +2,25 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import LogoutConfirmModal from "./LogoutConfirmModal"
 import styles from "./Sidebar.module.css"
 
 export default function Sidebar({ isOpen, onClose, onUploadClick = () => {} }) {
   const navigate = useNavigate()
   const { logout } = useAuth()
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const handleNavigate = (path) => {
     navigate(path)
     onClose()
   }
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    setShowLogoutConfirm(true)
+  }
+
+  const handleConfirmLogout = async () => {
+    setShowLogoutConfirm(false)
     await logout()
     onClose()
     navigate("/")
@@ -119,6 +126,11 @@ export default function Sidebar({ isOpen, onClose, onUploadClick = () => {} }) {
           </button>
         </div>
       </aside>
+      <LogoutConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleConfirmLogout}
+      />
     </>
   )
 }

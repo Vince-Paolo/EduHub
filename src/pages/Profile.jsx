@@ -384,12 +384,6 @@ export default function Profile() {
                   >
                     Settings
                   </button>
-                  <button 
-                    className={`${styles.btn} ${styles.btnSecondary}`}
-                    onClick={() => navigate('/mfa')}
-                  >
-                    MFA Settings
-                  </button>
                 </>
               )}
             </div>

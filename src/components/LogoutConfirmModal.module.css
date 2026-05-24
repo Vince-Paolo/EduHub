@@ -1,0 +1,178 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 1.5rem;
+}
+
+.modal {
+  width: min(36rem, 100%);
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.18);
+  padding: 2rem;
+  border: 1px solid rgba(34, 197, 94, 0.15);
+  animation: slideUp 0.25s ease-out;
+}
+
+.iconCircle {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  background: rgba(34, 197, 94, 0.12);
+  display: grid;
+  place-items: center;
+  margin-bottom: 1rem;
+  color: #16a34a;
+}
+
+.iconCircle svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.text {
+  margin: 1rem 0 1.5rem;
+  color: #374151;
+  line-height: 1.7;
+  font-size: 0.98rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.cancelBtn,
+.confirmBtn {
+  padding: 0.85rem 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.cancelBtn {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.cancelBtn:hover {
+  background: #e5e7eb;
+}
+
+.confirmBtn {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.confirmBtn:hover {
+  background: #c01f3a;
+}
+
+:root[data-theme="dark"] .backdrop {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+:root[data-theme="dark"] .modal {
+  background: #0f172a;
+  border-color: rgba(34, 197, 94, 0.22);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="dark"] .iconCircle {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+
+:root[data-theme="dark"] .title {
+  color: #f8fafc;
+}
+
+:root[data-theme="dark"] .text {
+  color: #cbd5e1;
+}
+
+:root[data-theme="dark"] .cancelBtn {
+  background: #1f2937;
+  color: #e2e8f0;
+}
+
+:root[data-theme="dark"] .cancelBtn:hover {
+  background: #334155;
+}
+
+:root[data-theme="dark"] .confirmBtn {
+  background: #16a34a;
+}
+
+:root[data-theme="dark"] .confirmBtn:hover {
+  background: #15803d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .backdrop {
+    background: rgba(15, 23, 42, 0.75);
+  }
+
+  :root:not([data-theme="light"]) .modal {
+    background: #0f172a;
+    border-color: rgba(34, 197, 94, 0.22);
+    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
+  }
+
+  :root:not([data-theme="light"]) .iconCircle {
+    background: rgba(34, 197, 94, 0.16);
+    color: #86efac;
+  }
+
+  :root:not([data-theme="light"]) .title {
+    color: #f8fafc;
+  }
+
+  :root:not([data-theme="light"]) .text {
+    color: #cbd5e1;
+  }
+
+  :root:not([data-theme="light"]) .cancelBtn {
+    background: #1f2937;
+    color: #e2e8f0;
+  }
+
+  :root:not([data-theme="light"]) .cancelBtn:hover {
+    background: #334155;
+  }
+
+  :root:not([data-theme="light"]) .confirmBtn {
+    background: #16a34a;
+  }
+
+  :root:not([data-theme="light"]) .confirmBtn:hover {
+    background: #15803d;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

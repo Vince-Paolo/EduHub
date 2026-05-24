@@ -6,26 +6,28 @@ import { apiJson } from '../services/api'
 /**
  * MFAVerification Component
  * Handles verification of MFA codes during login
- * Supports: Email OTP, SMS OTP, and Backup Codes
+ * Supports: Email OTP and SMS OTP
  */
 export default function MFAVerification({
   userId,
   mfaMethods,
   onSuccess,
   onCancel,
-  email
+  email,
+  initialOtpSent = false,
+  initialStatusMessage = ''
 }) {
   const [verificationCode, setVerificationCode] = useState('')
   const [selectedMethod, setSelectedMethod] = useState(
-    mfaMethods.email ? 'email' : mfaMethods.sms ? 'sms' : 'backup'
+    mfaMethods.email ? 'email' : mfaMethods.sms ? 'sms' : 'email'
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
-  const [statusMessage, setStatusMessage] = useState('')
+  const [otpSent, setOtpSent] = useState(initialOtpSent)
+  const [statusMessage, setStatusMessage] = useState(initialStatusMessage)
   const [resendCount, setResendCount] = useState(0)
   const [resendTimer, setResendTimer] = useState(0)
-  const lastAutoSentMethod = useRef(null)
+  const lastAutoSentMethod = useRef(initialOtpSent ? selectedMethod : null)
 
   const isGmailUser = email?.toLowerCase().endsWith('@gmail.com')
 
@@ -116,11 +118,16 @@ export default function MFAVerification({
         })
       })
 
-      if (response.success && response.user) {
-        setUserAfterMFA(response.user)
-        onSuccess(response.user)
+      const verifiedUser = response?.user
+      if (response?.success && verifiedUser?.id) {
+        // Both the success flag and a well-formed user object must be present
+        // before we commit to the authenticated state. A partial response
+        // (e.g. success:true but user:null) is treated as a failure so the
+        // caller is never handed an incomplete session.
+        setUserAfterMFA(verifiedUser)
+        onSuccess(verifiedUser)
       } else {
-        setError(response.error || 'Verification failed')
+        setError(response?.error || 'Verification failed. Please try again.')
       }
     } catch (err) {
       setError(err.message || 'Failed to verify code')
@@ -169,15 +176,6 @@ export default function MFAVerification({
               <span>Text Message</span>
             </button>
           )}
-
-          <button
-            type="button"
-            className={`${styles.methodButton} ${selectedMethod === 'backup' ? styles.active : ''}`}
-            onClick={() => handleMethodChange('backup')}
-          >
-            <span className={styles.icon}>🔑</span>
-            <span>Backup Code</span>
-          </button>
         </div>
 
         {/* Error Alert */}
@@ -272,22 +270,6 @@ export default function MFAVerification({
             </div>
           )}
 
-          {selectedMethod === 'backup' && (
-            <div className={styles.inputGroup}>
-              <label>Enter one of your backup codes</label>
-              <input
-                type="text"
-                placeholder="XXXX-XXXX"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value.toUpperCase())}
-                className={styles.backupCodeInput}
-              />
-              <p className={styles.backupCodeInfo}>
-                Backup codes are 8-character codes. Using a backup code will reduce the number
-                of remaining codes.
-              </p>
-            </div>
-          )}
 
           {/* Action Buttons */}
           <div className={styles.buttonGroup}>
