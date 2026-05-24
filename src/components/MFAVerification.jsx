@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import styles from './MFAVerification.module.css'
 import { apiJson } from '../services/api'
@@ -25,6 +25,7 @@ export default function MFAVerification({
   const [statusMessage, setStatusMessage] = useState('')
   const [resendCount, setResendCount] = useState(0)
   const [resendTimer, setResendTimer] = useState(0)
+  const lastAutoSentMethod = useRef(null)
 
   const isGmailUser = email?.toLowerCase().endsWith('@gmail.com')
 
@@ -72,6 +73,7 @@ export default function MFAVerification({
         })
       }, 1000)
     } catch (err) {
+      lastAutoSentMethod.current = null
       setError(err.message || 'Failed to resend OTP')
     } finally {
       setLoading(false)
@@ -81,11 +83,16 @@ export default function MFAVerification({
   const { setUserAfterMFA } = useAuth()
 
   useEffect(() => {
-    if ((selectedMethod === 'email' || selectedMethod === 'sms') && !otpSent) {
+    if (
+      (selectedMethod === 'email' || selectedMethod === 'sms') &&
+      !otpSent &&
+      lastAutoSentMethod.current !== selectedMethod
+    ) {
+      lastAutoSentMethod.current = selectedMethod
       handleResendOTP()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMethod])
+  }, [selectedMethod, otpSent, userId])
 
   // Handle verification
   const handleVerify = async (e) => {
@@ -198,10 +205,7 @@ export default function MFAVerification({
                 <button
                   type="button"
                   className={styles.sendButton}
-                  onClick={() => {
-                    handleResendOTP()
-                    setOtpSent(true)
-                  }}
+                  onClick={handleResendOTP}
                   disabled={loading}
                 >
                   Send Code to Email
@@ -244,10 +248,7 @@ export default function MFAVerification({
                 <button
                   type="button"
                   className={styles.sendButton}
-                  onClick={() => {
-                    handleResendOTP()
-                    setOtpSent(true)
-                  }}
+                  onClick={handleResendOTP}
                   disabled={loading}
                 >
                   Send Code via SMS
