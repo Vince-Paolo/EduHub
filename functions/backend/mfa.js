@@ -1,6 +1,7 @@
 import speakeasy from 'speakeasy'
 import QRCode from 'qrcode'
 import nodemailer from 'nodemailer'
+import { google } from 'googleapis'
 
 /**
  * MFA Module for EduHub
@@ -8,13 +9,72 @@ import nodemailer from 'nodemailer'
  */
 
 // Configure email transporter (update with your email service)
-const emailTransporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
+const EMAIL_USER = process.env.EMAIL_USER || process.env.VITE_EMAIL_USER
+const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD || process.env.VITE_EMAIL_PASSWORD
+const EMAIL_SERVICE = process.env.EMAIL_SERVICE || process.env.VITE_EMAIL_SERVICE || 'gmail'
+const EMAIL_DEV_FALLBACK = process.env.EMAIL_DEV_FALLBACK !== 'false'
+
+const GMAIL_OAUTH_CLIENT_ID = process.env.GMAIL_OAUTH_CLIENT_ID
+const GMAIL_OAUTH_CLIENT_SECRET = process.env.GMAIL_OAUTH_CLIENT_SECRET
+const GMAIL_OAUTH_REFRESH_TOKEN = process.env.GMAIL_OAUTH_REFRESH_TOKEN
+const GMAIL_OAUTH_ACCESS_TOKEN = process.env.GMAIL_OAUTH_ACCESS_TOKEN
+const GMAIL_OAUTH_EMAIL = EMAIL_USER || process.env.GMAIL_OAUTH_EMAIL
+
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER
+const SMS_DEV_FALLBACK = process.env.SMS_DEV_FALLBACK !== 'false'
+
+const hasBasicEmailAuth = EMAIL_USER && EMAIL_PASSWORD
+const hasGmailOAuth = GMAIL_OAUTH_CLIENT_ID && GMAIL_OAUTH_CLIENT_SECRET && GMAIL_OAUTH_REFRESH_TOKEN && GMAIL_OAUTH_EMAIL
+
+if (!hasBasicEmailAuth && !hasGmailOAuth) {
+  console.warn('Email OTP is not fully configured. Falling back to console logging for OTP codes in development.')
+}
+
+if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+  console.warn('SMS OTP is not fully configured. Falling back to console logging for SMS OTP codes in development.')
+}
+
+const emailTransporter = hasBasicEmailAuth ? nodemailer.createTransport({
+  service: EMAIL_SERVICE,
   auth: {
-    user: process.env.EMAIL_USER || 'your-email@gmail.com',
-    pass: process.env.EMAIL_PASSWORD || 'your-app-password'
+    user: EMAIL_USER,
+    pass: EMAIL_PASSWORD
   }
-})
+}) : null
+
+function isGmailAddress(address) {
+  return typeof address === 'string' && address.toLowerCase().endsWith('@gmail.com')
+}
+
+async function createGmailOAuthTransporter() {
+  const oauth2Client = new google.auth.OAuth2(
+    GMAIL_OAUTH_CLIENT_ID,
+    GMAIL_OAUTH_CLIENT_SECRET,
+    'https://developers.google.com/oauthplayground'
+  )
+
+  oauth2Client.setCredentials({
+    refresh_token: GMAIL_OAUTH_REFRESH_TOKEN,
+    access_token: GMAIL_OAUTH_ACCESS_TOKEN
+  })
+
+  const accessTokenResponse = await oauth2Client.getAccessToken()
+  const accessToken = accessTokenResponse?.token || GMAIL_OAUTH_ACCESS_TOKEN
+
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      type: 'OAuth2',
+      user: GMAIL_OAUTH_EMAIL,
+      clientId: GMAIL_OAUTH_CLIENT_ID,
+      clientSecret: GMAIL_OAUTH_CLIENT_SECRET,
+      refreshToken: GMAIL_OAUTH_REFRESH_TOKEN,
+      accessToken
+    }
+  })
+}
 
 /**
  * Generate a 6-digit OTP code
@@ -73,18 +133,33 @@ export function generateBackupCodes(count = 10) {
 /**
  * Send OTP via email
  */
-export async function sendEmailOTP(email, otp, dbQuery) {
+export async function sendEmailOTP(user_id, email, otp, dbQuery) {
   try {
     // Store OTP in database
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes validity
     await dbQuery(
-      'INSERT INTO mfa_codes (user_id, code, code_type, expires_at) SELECT id, ?, ?, ? FROM users WHERE email = ?',
-      [otp, 'email', expiresAt, email]
+      'INSERT INTO mfa_codes (user_id, code, code_type, expires_at) VALUES (?, ?, ?, ?)',
+      [user_id, otp, 'email', expiresAt]
     )
+
+    const useGmailOAuthAsSender = hasGmailOAuth
+    const transporter = useGmailOAuthAsSender ? await createGmailOAuthTransporter() : emailTransporter
+
+    if (!transporter) {
+      if (EMAIL_DEV_FALLBACK) {
+        console.warn(`DEV OTP fallback: sending OTP for ${email} via console log instead of SMTP.`)
+        console.log(`EduHub Email OTP for ${email}: ${otp}`)
+        return { success: true, message: 'OTP logged to console in development mode' }
+      }
+      throw new Error('Email OTP is not configured. Set EMAIL_USER and EMAIL_PASSWORD or Gmail OAuth environment values.')
+    }
+
+    const sender = useGmailOAuthAsSender ? GMAIL_OAUTH_EMAIL : EMAIL_USER
+    console.log(`Email OTP transport: ${useGmailOAuthAsSender ? 'Gmail OAuth' : 'SMTP'} from ${sender} to ${email}`)
 
     // Send email
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@eduhub.com',
+      from: sender,
       to: email,
       subject: 'EduHub - Your OTP for Login',
       html: `
@@ -103,11 +178,16 @@ export async function sendEmailOTP(email, otp, dbQuery) {
       `
     }
 
-    await emailTransporter.sendMail(mailOptions)
-    return { success: true, message: 'OTP sent to email' }
+    await transporter.sendMail(mailOptions)
+    return { success: true, message: useGmailOAuthAsSender ? 'OTP sent from Gmail address' : 'OTP sent to email' }
   } catch (err) {
     console.error('Email OTP sending error:', err)
-    throw new Error('Failed to send OTP')
+    if (EMAIL_DEV_FALLBACK) {
+      console.warn('EMAIL_DEV_FALLBACK enabled: logging OTP to console instead of failing.');
+      console.log(`DEV OTP fallback: sending OTP for ${email} via console log instead of SMTP. OTP=${otp}`)
+      return { success: true, message: 'OTP logged to console in development mode' }
+    }
+    throw new Error(err.message || 'Failed to send OTP')
   }
 }
 
@@ -116,12 +196,6 @@ export async function sendEmailOTP(email, otp, dbQuery) {
  */
 export async function sendSMSOTP(phoneNumber, otp, dbQuery, user_id) {
   try {
-    const twilio = await import('twilio').then(m => m.default)
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    )
-
     // Store OTP in database
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes validity
     await dbQuery(
@@ -129,17 +203,37 @@ export async function sendSMSOTP(phoneNumber, otp, dbQuery, user_id) {
       [user_id, otp, 'sms', expiresAt]
     )
 
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+      if (SMS_DEV_FALLBACK) {
+        console.warn(`DEV SMS fallback: sending OTP for ${phoneNumber} via console log instead of Twilio.`)
+        console.log(`EduHub SMS OTP for ${phoneNumber}: ${otp}`)
+        return { success: true, message: 'OTP logged to console in development mode' }
+      }
+      throw new Error('SMS OTP is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER.')
+    }
+
+    const twilio = await import('twilio').then(m => m.default)
+    const client = twilio(
+      TWILIO_ACCOUNT_SID,
+      TWILIO_AUTH_TOKEN
+    )
+
     // Send SMS
     await client.messages.create({
       body: `Your EduHub login OTP is: ${otp}. Valid for 10 minutes.`,
-      from: process.env.TWILIO_PHONE_NUMBER,
+      from: TWILIO_PHONE_NUMBER,
       to: phoneNumber
     })
 
     return { success: true, message: 'OTP sent via SMS' }
   } catch (err) {
     console.error('SMS OTP sending error:', err)
-    throw new Error('Failed to send OTP via SMS')
+    if (SMS_DEV_FALLBACK) {
+      console.warn('SMS_DEV_FALLBACK enabled: logging OTP to console instead of failing.')
+      console.log(`DEV SMS fallback: sending OTP for ${phoneNumber} via console log instead of Twilio. OTP=${otp}`)
+      return { success: true, message: 'OTP logged to console in development mode' }
+    }
+    throw new Error(err.message || 'Failed to send OTP via SMS')
   }
 }
 

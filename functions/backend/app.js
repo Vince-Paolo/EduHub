@@ -9,8 +9,8 @@ import cookieParser from 'cookie-parser'
 import mysql from 'mysql2/promise'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
 import syncRouter from '../api/sync.js'
-import * as mfaService from './mfa.js'
 
 const app = express()
 const __filename = fileURLToPath(import.meta.url)
@@ -24,14 +24,17 @@ const envCandidates = [
   path.resolve(__dirname, '..', '..', '.env')
 ]
 
-const envPath = envCandidates.find(fs.existsSync)
-if (envPath) {
-  dotenv.config({ path: envPath })
-  console.log(`Loaded environment from ${envPath}`)
+const envPaths = envCandidates.filter(fs.existsSync)
+if (envPaths.length) {
+  envPaths.forEach((path) => dotenv.config({ path, override: true }))
+  console.log(`Loaded environment from ${envPaths.join(', ')}`)
   console.log(`Token value: ${process.env.VITE_GROQ_API_KEY ? 'SET' : 'NOT SET'}`)
 } else {
   console.warn('No .env file found in local or parent directories.')
 }
+
+const authSocialRouter = (await import('../../routes/Auth.social.js')).default
+const mfaService = await import('./mfa.js')
 
 const hasFirebaseAdminConfig = Boolean(
   process.env.FIREBASE_PROJECT_ID &&
@@ -58,17 +61,22 @@ const DB_PASSWORD = process.env.DB_PASSWORD || ''
 const DB_NAME = process.env.DB_NAME || 'eduhubdb'
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-secret'
 
-const dbPool = mysql.createPool({
+const dbPoolOptions = {
   host: DB_HOST,
   port: DB_PORT,
   user: DB_USER,
-  password: DB_PASSWORD,
   database: DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
   charset: 'utf8mb4'
-})
+}
+
+if (DB_PASSWORD) {
+  dbPoolOptions.password = DB_PASSWORD
+}
+
+const dbPool = mysql.createPool(dbPoolOptions)
 
 function normalizeUserRow(row) {
   if (!row) return null
@@ -205,6 +213,7 @@ const clientOrigin = process.env.CLIENT_ORIGIN || (process.env.NODE_ENV === 'pro
 app.use(cors({ origin: clientOrigin, credentials: true }))
 app.use(express.json())
 app.use(cookieParser())
+app.use('/api/auth/social', authSocialRouter)
 
 const isProduction = process.env.NODE_ENV === 'production'
 const sessionCookieOptions = {
@@ -263,6 +272,16 @@ app.get('/auth/me', async (req, res) => {
   return res.json({ user: user || null })
 })
 
+app.get('/api/auth/me', async (req, res) => {
+  const sessionToken = req.cookies?.session || null
+  const decoded = sessionToken ? verifySessionToken(sessionToken) : null
+  if (!decoded?.id) {
+    return res.json({ user: null })
+  }
+  const user = await getUserById(decoded.id)
+  return res.json({ user: user || null })
+})
+
 app.get('/auth/user/:id', authenticate, async (req, res) => {
   const user = await getUserById(req.params.id)
   if (!user) {
@@ -300,6 +319,64 @@ app.get('/auth/users', authenticate, async (req, res) => {
   }))
 
   return res.json({ users })
+})
+
+app.post('/api/auth/login', async (req, res) => {
+  const identifier = normalizeString(req.body.email || req.body.identifier || req.body.username)
+  const password = normalizeString(req.body.password)
+
+  if (!identifier || !password) {
+    return res.status(400).json({ error: 'Email/username and password are required.' })
+  }
+
+  try {
+    const user = await getUserByIdentifier(identifier)
+    if (!user || !(await verifyPassword(password, user.password))) {
+      return res.status(401).json({ error: 'Invalid email or password.' })
+    }
+
+    const mfaSettings = await dbQuery(
+      'SELECT mfa_enabled, email_mfa_enabled, sms_mfa_enabled, totp_mfa_enabled FROM mfa_settings WHERE user_id = ?',
+      [user.id]
+    )
+
+    const hasMFA = mfaSettings.length > 0 && mfaSettings[0].mfa_enabled
+    if (hasMFA) {
+      return res.json({
+        user: {
+          id: user.id,
+          uid: user.uid,
+          email: user.email,
+          username: user.username,
+          fullName: user.fullName,
+          createdAt: user.createdAt,
+        },
+        mfaRequired: true,
+        mfaMethods: {
+          email: mfaSettings[0].email_mfa_enabled,
+          sms: mfaSettings[0].sms_mfa_enabled,
+          totp: mfaSettings[0].totp_mfa_enabled,
+        },
+      })
+    }
+
+    const token = createSessionToken(user)
+    res.cookie('session', token, sessionCookieOptions)
+    return res.json({
+      user: {
+        id: user.id,
+        uid: user.uid,
+        email: user.email,
+        username: user.username,
+        fullName: user.fullName,
+        createdAt: user.createdAt,
+      },
+      mfaRequired: false,
+    })
+  } catch (err) {
+    console.error('Login error:', err)
+    return res.status(500).json({ error: 'Unable to login. Please try again later.' })
+  }
 })
 
 app.post('/login', async (req, res) => {
@@ -364,6 +441,68 @@ app.post('/login', async (req, res) => {
   }
 })
 
+app.post('/login/social', async (req, res) => {
+  const provider = normalizeString(req.body.provider)
+  const idToken = normalizeString(req.body.idToken)
+
+  if (!provider || !idToken) {
+    return res.status(400).json({ error: 'Social provider and token are required.' })
+  }
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken)
+    const email = normalizeEmail(decodedToken.email)
+    if (!email || !decodedToken.email_verified) {
+      return res.status(401).json({ error: 'Unable to verify social login email.' })
+    }
+
+    let user = await getUserByEmail(email)
+    if (!user) {
+      const randomPassword = crypto.randomBytes(16).toString('hex')
+      user = await createUser({
+        fullName: decodedToken.name || '',
+        username: decodedToken.name || email.split('@')[0],
+        email,
+        password: randomPassword
+      })
+    }
+
+    const mfaSettings = await dbQuery(
+      'SELECT mfa_enabled, email_mfa_enabled, sms_mfa_enabled, totp_mfa_enabled FROM mfa_settings WHERE user_id = ?',
+      [user.id]
+    )
+
+    const hasMFA = mfaSettings.length > 0 && mfaSettings[0].mfa_enabled
+    const userPayload = {
+      id: user.id,
+      uid: user.uid,
+      email: user.email,
+      username: user.username,
+      fullName: user.fullName,
+      createdAt: user.createdAt
+    }
+
+    if (hasMFA) {
+      return res.json({
+        user: userPayload,
+        mfaRequired: true,
+        mfaMethods: {
+          email: mfaSettings[0].email_mfa_enabled,
+          sms: mfaSettings[0].sms_mfa_enabled,
+          totp: mfaSettings[0].totp_mfa_enabled
+        }
+      })
+    }
+
+    const token = createSessionToken(user)
+    res.cookie('session', token, sessionCookieOptions)
+    return res.json({ user: userPayload, mfaRequired: false })
+  } catch (err) {
+    console.error('Social login error:', err)
+    return res.status(401).json({ error: 'Social login failed. Please try again.' })
+  }
+})
+
 
 app.post('/register', async (req, res) => {
   const fullName = normalizeString(req.body.fullName)
@@ -387,6 +526,11 @@ app.post('/register', async (req, res) => {
     console.error('Register error:', err)
     return res.status(500).json({ error: 'Unable to register. Please try again later.' })
   }
+})
+
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('session', { path: '/' })
+  return res.json({ status: 'success' })
 })
 
 app.post('/logout', (req, res) => {
@@ -528,7 +672,7 @@ app.post('/mfa/setup', authenticate, async (req, res) => {
     } else if (mfaMethod === 'email') {
       // Send verification OTP to email
       const otp = mfaService.generateOTPCode()
-      await mfaService.sendEmailOTP(user.email, otp, dbQuery)
+      await mfaService.sendEmailOTP(user.id, user.email, otp, dbQuery)
 
       setupData = {
         method: 'email',
@@ -675,7 +819,22 @@ app.post('/mfa/verify-login', async (req, res) => {
 
       isValid = mfaService.verifyTOTPToken(mfaSettings[0].totp_secret, code)
     } else if (method === 'email' || method === 'sms') {
-      // Verify OTP code
+      const mfaSettings = await dbQuery(
+        'SELECT email_mfa_enabled, sms_mfa_enabled FROM mfa_settings WHERE user_id = ?',
+        [userId]
+      )
+
+      if (mfaSettings.length === 0) {
+        return res.status(400).json({ error: 'MFA is not configured for this user' })
+      }
+
+      const enabledEmail = mfaSettings[0].email_mfa_enabled
+      const enabledSMS = mfaSettings[0].sms_mfa_enabled
+
+      if ((method === 'email' && !enabledEmail) || (method === 'sms' && !enabledSMS)) {
+        return res.status(400).json({ error: `${method.toUpperCase()} MFA is not enabled for this user` })
+      }
+
       const result = await mfaService.verifyOTPCode(userId, code, dbQuery)
       isValid = result.success
     } else if (method === 'backup') {
@@ -809,21 +968,31 @@ app.post('/mfa/send-otp', async (req, res) => {
       return res.status(404).json({ error: 'User not found' })
     }
 
+    const mfaSettings = await dbQuery(
+      'SELECT email_mfa_enabled, sms_mfa_enabled, phone_number FROM mfa_settings WHERE user_id = ?',
+      [userId]
+    )
+
+    if (mfaSettings.length === 0) {
+      return res.status(400).json({ error: 'MFA is not configured for this user' })
+    }
+
+    const enabledEmail = mfaSettings[0].email_mfa_enabled
+    const enabledSMS = mfaSettings[0].sms_mfa_enabled
+    const phoneNumber = mfaSettings[0].phone_number
+
     const otp = mfaService.generateOTPCode()
 
     if (method === 'email') {
-      await mfaService.sendEmailOTP(user.email, otp, dbQuery)
-    } else if (method === 'sms') {
-      const mfaSettings = await dbQuery(
-        'SELECT phone_number FROM mfa_settings WHERE user_id = ?',
-        [userId]
-      )
-
-      if (mfaSettings.length === 0 || !mfaSettings[0].phone_number) {
-        return res.status(400).json({ error: 'Phone number not configured for SMS MFA' })
+      if (!enabledEmail) {
+        return res.status(400).json({ error: 'Email MFA is not enabled for this user' })
       }
-
-      await mfaService.sendSMSOTP(mfaSettings[0].phone_number, otp, dbQuery, userId)
+      await mfaService.sendEmailOTP(user.id, user.email, otp, dbQuery)
+    } else if (method === 'sms') {
+      if (!enabledSMS || !phoneNumber) {
+        return res.status(400).json({ error: 'SMS MFA is not enabled or no phone number is configured' })
+      }
+      await mfaService.sendSMSOTP(phoneNumber, otp, dbQuery, userId)
     }
 
     return res.json({

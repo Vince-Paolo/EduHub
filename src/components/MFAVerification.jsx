@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import styles from './MFAVerification.module.css'
 import { apiJson } from '../services/api'
@@ -22,16 +22,33 @@ export default function MFAVerification({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [otpSent, setOtpSent] = useState(false)
+  const [statusMessage, setStatusMessage] = useState('')
   const [resendCount, setResendCount] = useState(0)
   const [resendTimer, setResendTimer] = useState(0)
+
+  const isGmailUser = email?.toLowerCase().endsWith('@gmail.com')
+
+  const getOtpStatusMessage = (method, responseMessage) => {
+    if (method === 'email') {
+      if (isGmailUser) {
+        return responseMessage || `A code has been sent from your Gmail account (${email}). Check your Gmail inbox and spam folder.`
+      }
+      return responseMessage || `A code has been sent to your email (${email}).`
+    }
+    if (method === 'sms') {
+      return responseMessage || 'A code has been sent to your phone.'
+    }
+    return responseMessage || 'A verification code has been sent.'
+  }
 
   // Handle resending OTP
   const handleResendOTP = async () => {
     try {
       setLoading(true)
       setError('')
+      setStatusMessage('')
 
-      await apiJson('/mfa/send-otp', {
+      const response = await apiJson('/mfa/send-otp', {
         method: 'POST',
         body: JSON.stringify({
           userId,
@@ -39,8 +56,10 @@ export default function MFAVerification({
         })
       })
 
+      setOtpSent(true)
       setResendCount(prev => prev + 1)
       setResendTimer(60)
+      setStatusMessage(getOtpStatusMessage(selectedMethod, response?.message))
 
       // Countdown timer
       const interval = setInterval(() => {
@@ -60,6 +79,13 @@ export default function MFAVerification({
   }
 
   const { setUserAfterMFA } = useAuth()
+
+  useEffect(() => {
+    if ((selectedMethod === 'email' || selectedMethod === 'sms') && !otpSent) {
+      handleResendOTP()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMethod])
 
   // Handle verification
   const handleVerify = async (e) => {
@@ -101,6 +127,7 @@ export default function MFAVerification({
     setSelectedMethod(method)
     setVerificationCode('')
     setError('')
+    setStatusMessage('')
     setOtpSent(false)
   }
 
@@ -159,6 +186,7 @@ export default function MFAVerification({
 
         {/* Error Alert */}
         {error && <div className={styles.errorAlert}>{error}</div>}
+        {statusMessage && <div className={styles.infoAlert}>{statusMessage}</div>}
 
         {/* Verification Form */}
         <form onSubmit={handleVerify} className={styles.form}>

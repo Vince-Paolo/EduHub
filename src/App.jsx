@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { db } from './services/database'
+import { getScopedJson } from './services/storage'
+import { useAuth } from './context/AuthContext'
 import { NotificationProvider } from './context/NotificationContext'
 import NotificationCenter from './components/NotificationCenter'
 import PrivateRoute from './components/PrivateRoute'
@@ -22,6 +24,8 @@ function App() {
   const [dbReady, setDbReady] = useState(false)
   const [dbError, setDbError] = useState(false)
 
+  const { user } = useAuth()
+
   useEffect(() => {
     db.init()
       .then(() => {
@@ -34,20 +38,18 @@ function App() {
         setDbReady(true)
         setDbError(true)
       })
-
-    // Apply saved dark mode preference
-    const savedSettings = localStorage.getItem('userSettings')
-    if (savedSettings) {
-      try {
-        const settings = JSON.parse(savedSettings)
-        if (settings.darkMode) {
-          document.documentElement.setAttribute('data-theme', 'dark')
-        }
-      } catch {
-        // ignore corrupt settings
-      }
-    }
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+
+    const savedSettings = getScopedJson('userSettings', user.uid, null)
+    if (savedSettings && savedSettings.darkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+    }
+  }, [user])
 
   if (!dbReady) {
     return (

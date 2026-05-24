@@ -81,6 +81,16 @@
   font-size: 14px;
 }
 
+.infoAlert {
+  background-color: #eef6ff;
+  border: 1px solid #cfe3ff;
+  color: #0d4a8a;
+  padding: 12px 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
 .form {
   display: flex;
   flex-direction: column;
