@@ -2,6 +2,7 @@ import speakeasy from 'speakeasy'
 import QRCode from 'qrcode'
 import nodemailer from 'nodemailer'
 import { google } from 'googleapis'
+import messagebird from 'messagebird'
 
 /**
  * MFA Module for EduHub
@@ -20,6 +21,8 @@ const GMAIL_OAUTH_REFRESH_TOKEN = process.env.GMAIL_OAUTH_REFRESH_TOKEN
 const GMAIL_OAUTH_ACCESS_TOKEN = process.env.GMAIL_OAUTH_ACCESS_TOKEN
 const GMAIL_OAUTH_EMAIL = EMAIL_USER || process.env.GMAIL_OAUTH_EMAIL
 
+const MESSAGEBIRD_API_KEY = process.env.MESSAGEBIRD_API_KEY
+const MESSAGEBIRD_ORIGINATOR = process.env.MESSAGEBIRD_ORIGINATOR
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER
@@ -27,6 +30,7 @@ const SMS_DEV_FALLBACK = process.env.SMS_DEV_FALLBACK !== 'false'
 
 const hasBasicEmailAuth = EMAIL_USER && EMAIL_PASSWORD
 const hasGmailOAuth = GMAIL_OAUTH_CLIENT_ID && GMAIL_OAUTH_CLIENT_SECRET && GMAIL_OAUTH_REFRESH_TOKEN && GMAIL_OAUTH_EMAIL
+const hasMessageBird = Boolean(MESSAGEBIRD_API_KEY)
 
 if (!hasBasicEmailAuth && !hasGmailOAuth) {
   console.warn('Email OTP is not fully configured. Falling back to console logging for OTP codes in development.')
@@ -203,13 +207,35 @@ export async function sendSMSOTP(phoneNumber, otp, dbQuery, user_id) {
       [user_id, otp, 'sms', expiresAt]
     )
 
+    const body = `Your EduHub login OTP is: ${otp}. Valid for 10 minutes.`
+
+    if (hasMessageBird) {
+      if (!MESSAGEBIRD_ORIGINATOR) {
+        throw new Error('MessageBird is configured but MESSAGEBIRD_ORIGINATOR is missing.')
+      }
+
+      const mb = messagebird(MESSAGEBIRD_API_KEY)
+      await new Promise((resolve, reject) => {
+        mb.messages.create({
+          originator: MESSAGEBIRD_ORIGINATOR,
+          recipients: [phoneNumber],
+          body
+        }, (err, response) => {
+          if (err) return reject(err)
+          resolve(response)
+        })
+      })
+
+      return { success: true, message: 'OTP sent via MessageBird SMS' }
+    }
+
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
       if (SMS_DEV_FALLBACK) {
-        console.warn(`DEV SMS fallback: sending OTP for ${phoneNumber} via console log instead of Twilio.`)
+        console.warn(`DEV SMS fallback: sending OTP for ${phoneNumber} via console log instead of SMS provider.`)
         console.log(`EduHub SMS OTP for ${phoneNumber}: ${otp}`)
         return { success: true, message: 'OTP logged to console in development mode' }
       }
-      throw new Error('SMS OTP is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER.')
+      throw new Error('SMS OTP is not configured. Set MESSAGEBIRD_API_KEY and MESSAGEBIRD_ORIGINATOR or Twilio credentials.')
     }
 
     const twilio = await import('twilio').then(m => m.default)
@@ -218,19 +244,19 @@ export async function sendSMSOTP(phoneNumber, otp, dbQuery, user_id) {
       TWILIO_AUTH_TOKEN
     )
 
-    // Send SMS
+    // Send SMS via Twilio fallback
     await client.messages.create({
-      body: `Your EduHub login OTP is: ${otp}. Valid for 10 minutes.`,
+      body,
       from: TWILIO_PHONE_NUMBER,
       to: phoneNumber
     })
 
-    return { success: true, message: 'OTP sent via SMS' }
+    return { success: true, message: 'OTP sent via Twilio SMS' }
   } catch (err) {
     console.error('SMS OTP sending error:', err)
     if (SMS_DEV_FALLBACK) {
       console.warn('SMS_DEV_FALLBACK enabled: logging OTP to console instead of failing.')
-      console.log(`DEV SMS fallback: sending OTP for ${phoneNumber} via console log instead of Twilio. OTP=${otp}`)
+      console.log(`DEV SMS fallback: sending OTP for ${phoneNumber} via console log. OTP=${otp}`)
       return { success: true, message: 'OTP logged to console in development mode' }
     }
     throw new Error(err.message || 'Failed to send OTP via SMS')

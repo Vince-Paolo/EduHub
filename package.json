@@ -10,7 +10,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy:hosting": "npx firebase deploy --only hosting",
+    "deploy:hosting": "npm run build && npx firebase deploy --only hosting",
     "deploy:functions": "npx firebase deploy --only functions",
     "deploy:all": "npx firebase deploy"
   },
@@ -30,6 +30,7 @@
     "google-auth-library": "^10.6.2",
     "googleapis": "^172.0.0",
     "jsonwebtoken": "^9.0.3",
+    "messagebird": "^4.0.1",
     "mysql2": "^3.22.3",
     "nodemailer": "^6.10.1",
     "pdfjs-dist": "^5.7.284",

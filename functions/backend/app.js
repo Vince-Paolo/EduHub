@@ -647,7 +647,7 @@ app.post('/mfa/setup', authenticate, async (req, res) => {
     const userId = req.user.id
     const { mfaMethod } = req.body
 
-    if (!['email', 'sms', 'totp'].includes(mfaMethod)) {
+    if (!['email', 'sms'].includes(mfaMethod)) {
       return res.status(400).json({ error: 'Invalid MFA method' })
     }
 
@@ -658,25 +658,19 @@ app.post('/mfa/setup', authenticate, async (req, res) => {
 
     let setupData = { method: mfaMethod }
 
-    if (mfaMethod === 'totp') {
-      // Generate TOTP secret
-      const secret = mfaService.generateTOTPSecret(user.email)
-      const qrCode = await mfaService.generateQRCode(secret)
-
-      setupData = {
-        method: 'totp',
-        secret: secret.base32,
-        qrCode: qrCode,
-        backupCodes: mfaService.generateBackupCodes()
+    if (mfaMethod === 'email') {
+      const email = (req.body.email || user.email || '').trim()
+      if (!email) {
+        return res.status(400).json({ error: 'Email address is required for Email MFA' })
       }
-    } else if (mfaMethod === 'email') {
-      // Send verification OTP to email
+
+      // Send verification OTP to the logged-in user's email
       const otp = mfaService.generateOTPCode()
-      await mfaService.sendEmailOTP(user.id, user.email, otp, dbQuery)
+      await mfaService.sendEmailOTP(user.id, email, otp, dbQuery)
 
       setupData = {
         method: 'email',
-        message: 'OTP sent to your email'
+        message: `OTP sent to ${email}`
       }
     } else if (mfaMethod === 'sms') {
       // Check if phone number is provided
@@ -712,35 +706,13 @@ app.post('/mfa/verify-setup', authenticate, async (req, res) => {
     const userId = req.user.id
     const { mfaMethod, code, secret, backupCodes, phoneNumber } = req.body
 
-    if (!['email', 'sms', 'totp'].includes(mfaMethod)) {
+    if (!['email', 'sms'].includes(mfaMethod)) {
       return res.status(400).json({ error: 'Invalid MFA method' })
     }
 
     let isValid = false
 
-    if (mfaMethod === 'totp') {
-      // Verify TOTP token
-      if (!code || !secret) {
-        return res.status(400).json({ error: 'Code and secret are required' })
-      }
-      isValid = mfaService.verifyTOTPToken(secret, code)
-
-      if (!isValid) {
-        return res.status(400).json({ error: 'Invalid TOTP code' })
-      }
-
-      // Save TOTP secret and backup codes
-      await mfaService.updateMFASettings(
-        userId,
-        {
-          totp_mfa_enabled: true,
-          totp_secret: secret,
-          backup_codes: JSON.stringify(backupCodes),
-          mfa_enabled: true
-        },
-        dbQuery
-      )
-    } else if (mfaMethod === 'email') {
+    if (mfaMethod === 'email') {
       // Verify email OTP
       const result = await mfaService.verifyOTPCode(userId, code, dbQuery)
 
@@ -800,25 +772,13 @@ app.post('/mfa/verify-login', async (req, res) => {
       return res.status(400).json({ error: 'userId, code, and method are required' })
     }
 
-    if (!['email', 'sms', 'totp', 'backup'].includes(method)) {
+    if (!['email', 'sms', 'backup'].includes(method)) {
       return res.status(400).json({ error: 'Invalid verification method' })
     }
 
     let isValid = false
 
-    if (method === 'totp') {
-      // Get TOTP secret from database
-      const mfaSettings = await dbQuery(
-        'SELECT totp_secret FROM mfa_settings WHERE user_id = ? AND totp_mfa_enabled = 1',
-        [userId]
-      )
-
-      if (mfaSettings.length === 0) {
-        return res.status(400).json({ error: 'TOTP not enabled for this user' })
-      }
-
-      isValid = mfaService.verifyTOTPToken(mfaSettings[0].totp_secret, code)
-    } else if (method === 'email' || method === 'sms') {
+    if (method === 'email' || method === 'sms') {
       const mfaSettings = await dbQuery(
         'SELECT email_mfa_enabled, sms_mfa_enabled FROM mfa_settings WHERE user_id = ?',
         [userId]
