@@ -393,37 +393,14 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password.' })
     }
 
-    // Check if MFA is enabled
-    const mfaSettings = await dbQuery(
-      'SELECT mfa_enabled, email_mfa_enabled, sms_mfa_enabled, totp_mfa_enabled FROM mfa_settings WHERE user_id = ?',
-      [user.id]
-    )
-
-    const hasMFA = mfaSettings.length > 0 && mfaSettings[0].mfa_enabled
-
-    if (hasMFA) {
-      // Return user data with MFA required flag
-      return res.json({
-        user: {
-          id: user.id,
-          uid: user.uid,
-          email: user.email,
-          username: user.username,
-          fullName: user.fullName,
-          createdAt: user.createdAt
-        },
-        mfaRequired: true,
-        mfaMethods: {
-          email: mfaSettings[0].email_mfa_enabled,
-          sms: mfaSettings[0].sms_mfa_enabled,
-          totp: mfaSettings[0].totp_mfa_enabled
-        }
-      })
+    // Always send an OTP before completing login, using email verification first
+    if (!user.email) {
+      return res.status(400).json({ error: 'Email address is required for OTP verification.' })
     }
 
-    // Standard login without MFA
-    const token = createSessionToken(user)
-    res.cookie('session', token, sessionCookieOptions)
+    const otp = mfaService.generateOTPCode()
+    await mfaService.sendEmailOTP(user.id, user.email, otp, dbQuery)
+
     return res.json({
       user: {
         id: user.id,
@@ -433,7 +410,14 @@ app.post('/login', async (req, res) => {
         fullName: user.fullName,
         createdAt: user.createdAt
       },
-      mfaRequired: false
+      mfaRequired: true,
+      mfaMethods: {
+        email: true,
+        sms: false,
+        totp: false
+      },
+      otpSent: true,
+      message: `A verification code has been sent to ${user.email}`
     })
   } catch (err) {
     console.error('Login error:', err)
@@ -704,7 +688,7 @@ app.post('/mfa/setup', authenticate, async (req, res) => {
 app.post('/mfa/verify-setup', authenticate, async (req, res) => {
   try {
     const userId = req.user.id
-    const { mfaMethod, code, secret, backupCodes, phoneNumber } = req.body
+    const { mfaMethod, code, secret, phoneNumber } = req.body
 
     if (!['email', 'sms'].includes(mfaMethod)) {
       return res.status(400).json({ error: 'Invalid MFA method' })
@@ -772,7 +756,7 @@ app.post('/mfa/verify-login', async (req, res) => {
       return res.status(400).json({ error: 'userId, code, and method are required' })
     }
 
-    if (!['email', 'sms', 'backup'].includes(method)) {
+    if (!['email', 'sms'].includes(method)) {
       return res.status(400).json({ error: 'Invalid verification method' })
     }
 
@@ -784,22 +768,20 @@ app.post('/mfa/verify-login', async (req, res) => {
         [userId]
       )
 
-      if (mfaSettings.length === 0) {
-        return res.status(400).json({ error: 'MFA is not configured for this user' })
+      const enabledEmail = mfaSettings.length > 0 ? mfaSettings[0].email_mfa_enabled : true
+      const enabledSMS = mfaSettings.length > 0 ? mfaSettings[0].sms_mfa_enabled : false
+
+      if (method === 'sms' && !enabledSMS) {
+        return res.status(400).json({ error: 'SMS MFA is not enabled for this user' })
       }
 
-      const enabledEmail = mfaSettings[0].email_mfa_enabled
-      const enabledSMS = mfaSettings[0].sms_mfa_enabled
-
-      if ((method === 'email' && !enabledEmail) || (method === 'sms' && !enabledSMS)) {
-        return res.status(400).json({ error: `${method.toUpperCase()} MFA is not enabled for this user` })
+      if (method === 'email' && !enabledEmail && mfaSettings.length > 0) {
+        // For login-first OTP flow, email verification should still work
+        // even if explicit email MFA has not been enabled in settings.
+        console.warn(`Login-first email OTP verify for user ${userId} while email_mfa_enabled is false`)
       }
 
       const result = await mfaService.verifyOTPCode(userId, code, dbQuery)
-      isValid = result.success
-    } else if (method === 'backup') {
-      // Verify backup code
-      const result = await mfaService.verifyBackupCode(userId, code, dbQuery)
       isValid = result.success
     }
 
@@ -933,19 +915,15 @@ app.post('/mfa/send-otp', async (req, res) => {
       [userId]
     )
 
-    if (mfaSettings.length === 0) {
-      return res.status(400).json({ error: 'MFA is not configured for this user' })
-    }
-
-    const enabledEmail = mfaSettings[0].email_mfa_enabled
-    const enabledSMS = mfaSettings[0].sms_mfa_enabled
-    const phoneNumber = mfaSettings[0].phone_number
+    const enabledEmail = mfaSettings.length > 0 ? mfaSettings[0].email_mfa_enabled : true
+    const enabledSMS = mfaSettings.length > 0 ? mfaSettings[0].sms_mfa_enabled : false
+    const phoneNumber = mfaSettings.length > 0 ? mfaSettings[0].phone_number : null
 
     const otp = mfaService.generateOTPCode()
 
     if (method === 'email') {
-      if (!enabledEmail) {
-        return res.status(400).json({ error: 'Email MFA is not enabled for this user' })
+      if (!user.email) {
+        return res.status(400).json({ error: 'Email address is required for email OTP' })
       }
       await mfaService.sendEmailOTP(user.id, user.email, otp, dbQuery)
     } else if (method === 'sms') {

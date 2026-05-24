@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import MFAVerification from "../components/MFAVerification"
@@ -16,14 +16,25 @@ export default function Login() {
   const [mfaRequired, setMfaRequired] = useState(false)
   const [tempUser, setTempUser] = useState(null)
   const [mfaMethods, setMfaMethods] = useState({})
+  const [initialOtpSent, setInitialOtpSent] = useState(false)
+  const [mfaMessage, setMfaMessage] = useState('')
+
+  // Ref that stays true for the entire MFA flow, preventing the useEffect
+  // from redirecting while MFA state transitions are mid-flight (e.g. between
+  // setMfaRequired(false) and navigate() in handleMFASuccess).
+  const mfaFlowActive = useRef(false)
 
   const { login, user } = useAuth()
 
   useEffect(() => {
-    if (user) {
+    // Guard: never redirect while the MFA flow is active — even if mfaRequired
+    // is momentarily false during the handleMFASuccess state transition — and
+    // require tempUser to be cleared so a stale auth-context user can't sneak
+    // past an in-progress MFA challenge.
+    if (user && !mfaRequired && !mfaFlowActive.current && tempUser === null) {
       navigate("/dashboard", { replace: true })
     }
-  }, [user, navigate])
+  }, [user, navigate, mfaRequired, tempUser])
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -34,8 +45,14 @@ export default function Login() {
       const data = await login(email.trim(), password)
 
       if (data?.mfaRequired) {
+        if (!data.user?.id) {
+          throw new Error("Server returned MFA required but no user — please try again.")
+        }
+        mfaFlowActive.current = true   // block useEffect redirects for entire MFA flow
         setTempUser(data.user)
         setMfaMethods(data.mfaMethods || {})
+        setInitialOtpSent(Boolean(data.otpSent))
+        setMfaMessage(data.message || '')
         setMfaRequired(true)
         return
       }
@@ -48,17 +65,30 @@ export default function Login() {
     }
   }
 
-  const handleMFASuccess = (user) => {
-    // User has been authenticated and session cookie set
-    // Update auth context and redirect
+  const handleMFASuccess = (verifiedUser) => {
+    // MFA fully verified: lock out the useEffect redirect guard, clear all MFA
+    // state synchronously, then navigate. The ref prevents any async render
+    // cycle between setMfaRequired(false) and navigate() from redirecting via
+    // the effect with a partially-reset state.
+    if (!verifiedUser?.id) {
+      // Defensive: onSuccess should never be called without a valid user object.
+      setError("Authentication error — please try again.")
+      handleMFACancel()
+      return
+    }
+    mfaFlowActive.current = false
     setMfaRequired(false)
+    setTempUser(null)
     navigate("/dashboard", { replace: true })
   }
 
   const handleMFACancel = () => {
+    mfaFlowActive.current = false
     setMfaRequired(false)
     setTempUser(null)
     setMfaMethods({})
+    setInitialOtpSent(false)
+    setMfaMessage('')
     setError("")
   }
 
@@ -70,6 +100,8 @@ export default function Login() {
         onSuccess={handleMFASuccess}
         onCancel={handleMFACancel}
         email={tempUser.email}
+        initialOtpSent={initialOtpSent}
+        initialStatusMessage={mfaMessage}
       />
     )
   }

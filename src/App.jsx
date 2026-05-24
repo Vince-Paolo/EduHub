@@ -11,7 +11,6 @@ import Dashboard from './pages/Dashboard'
 import Modules from './pages/Modules'
 import Quizzes from './pages/Quizzes'
 import Profile from './pages/Profile'
-import MFASettings from './components/MFASettings'
 import Quiz from './pages/Quiz'
 import Register from './pages/Register'
 import QuizConfig from './pages/QuizConfig'
@@ -93,7 +92,6 @@ function App() {
         <Route path="/modules"       element={<PrivateRoute><Modules /></PrivateRoute>} />
         <Route path="/quizzes"       element={<PrivateRoute><Quizzes /></PrivateRoute>} />
         <Route path="/profile"       element={<PrivateRoute><Profile /></PrivateRoute>} />
-        <Route path="/mfa"           element={<PrivateRoute><MFASettings /></PrivateRoute>} />
         <Route path="/quiz"          element={<PrivateRoute><Quiz /></PrivateRoute>} />
         <Route path="/register"      element={<Register />} />
         <Route path="/quiz-config/:id"    element={<PrivateRoute><QuizConfig /></PrivateRoute>} />
