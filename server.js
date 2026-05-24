@@ -1,21 +1,12 @@
-import app from './functions/backend/app.js'
+import backendApp from './functions/backend/app.js'
 import express from 'express';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
-
-const PORT = process.env.PORT || 5000
-
-app.listen(PORT, () => {
-  console.log(`\n✓ Server listening on port ${PORT}`)
-  console.log(`✓ Groq API quiz generation enabled`)
-  console.log(`✓ POST /api/generate-quiz ready for requests`)
-  console.log(`✓ POST /api/sync  — offline sync queue endpoint ready`)
-  console.log(`✓ GET  /api/sync/:userId — progress fetch ready\n`)
-})
+import './init-mfa-tables.js'
 
 dotenv.config();
 
-const app = express();
+const app = backendApp;
 app.use(express.json());
 
 // 1. Configure Nodemailer with your Gmail OAuth2 credentials
@@ -97,4 +88,10 @@ app.post('/api/verify-otp', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`\n✓ Server listening on port ${PORT}`)
+  console.log(`✓ Groq API quiz generation enabled`)
+  console.log(`✓ POST /api/generate-quiz ready for requests`)
+  console.log(`✓ POST /api/sync  — offline sync queue endpoint ready`)
+  console.log(`✓ GET  /api/sync/:userId — progress fetch ready\n`)
+});

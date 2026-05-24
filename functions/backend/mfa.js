@@ -19,7 +19,7 @@ const GMAIL_OAUTH_CLIENT_ID = process.env.GMAIL_OAUTH_CLIENT_ID
 const GMAIL_OAUTH_CLIENT_SECRET = process.env.GMAIL_OAUTH_CLIENT_SECRET
 const GMAIL_OAUTH_REFRESH_TOKEN = process.env.GMAIL_OAUTH_REFRESH_TOKEN
 const GMAIL_OAUTH_ACCESS_TOKEN = process.env.GMAIL_OAUTH_ACCESS_TOKEN
-const GMAIL_OAUTH_EMAIL = EMAIL_USER || process.env.GMAIL_OAUTH_EMAIL
+const GMAIL_OAUTH_EMAIL = process.env.GMAIL_OAUTH_EMAIL || EMAIL_USER
 
 const MESSAGEBIRD_API_KEY = process.env.MESSAGEBIRD_API_KEY
 const MESSAGEBIRD_ORIGINATOR = process.env.MESSAGEBIRD_ORIGINATOR
@@ -66,6 +66,9 @@ async function createGmailOAuthTransporter() {
 
   const accessTokenResponse = await oauth2Client.getAccessToken()
   const accessToken = accessTokenResponse?.token || GMAIL_OAUTH_ACCESS_TOKEN
+  if (!accessToken) {
+    throw new Error('Unable to obtain Gmail OAuth access token. Check your refresh token and Gmail OAuth credentials.')
+  }
 
   return nodemailer.createTransport({
     service: 'gmail',
