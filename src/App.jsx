@@ -14,7 +14,7 @@ import Profile from './pages/Profile'
 import MFASettings from './components/MFASettings'
 import Quiz from './pages/Quiz'
 import Register from './pages/Register'
-import QuizConfig from './pages/QuizConfig'
+import QuizConfig from './pages/Quizconfig'
 import Groups from './pages/Groups'
 import OfflineLessonViewer from './components/OfflineLessonViewer'
 
