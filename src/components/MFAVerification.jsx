@@ -6,7 +6,7 @@ import { apiJson } from '../services/api'
 /**
  * MFAVerification Component
  * Handles verification of MFA codes during login
- * Supports: Email OTP, SMS OTP, TOTP, and Backup Codes
+ * Supports: Email OTP, SMS OTP, and Backup Codes
  */
 export default function MFAVerification({
   userId,
@@ -17,7 +17,7 @@ export default function MFAVerification({
 }) {
   const [verificationCode, setVerificationCode] = useState('')
   const [selectedMethod, setSelectedMethod] = useState(
-    mfaMethods.totp ? 'totp' : mfaMethods.email ? 'email' : 'sms'
+    mfaMethods.email ? 'email' : mfaMethods.sms ? 'sms' : 'backup'
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -141,17 +141,6 @@ export default function MFAVerification({
 
         {/* Method Selection */}
         <div className={styles.methodSelector}>
-          {mfaMethods.totp && (
-            <button
-              type="button"
-              className={`${styles.methodButton} ${selectedMethod === 'totp' ? styles.active : ''}`}
-              onClick={() => handleMethodChange('totp')}
-            >
-              <span className={styles.icon}>🔐</span>
-              <span>Authenticator App</span>
-            </button>
-          )}
-
           {mfaMethods.email && (
             <button
               type="button"
@@ -190,24 +179,6 @@ export default function MFAVerification({
 
         {/* Verification Form */}
         <form onSubmit={handleVerify} className={styles.form}>
-          {selectedMethod === 'totp' && (
-            <div className={styles.inputGroup}>
-              <label>Enter 6-digit code from your authenticator app</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]{6}"
-                maxLength="6"
-                placeholder="000000"
-                value={verificationCode}
-                onChange={(e) =>
-                  setVerificationCode(e.target.value.replace(/\D/g, ''))
-                }
-                className={styles.codeInput}
-              />
-            </div>
-          )}
-
           {selectedMethod === 'email' && (
             <div className={styles.inputGroup}>
               <label>Enter code sent to your email</label>

@@ -61,7 +61,6 @@ export default function MFASettings() {
       if (response.success) {
         setSetupData(response.setup)
         setSetupStep('configure')
-        if (method === 'totp') setBackupCodes(response.setup.backupCodes || [])
       }
     } catch (err) {
       setError(err.message || 'Failed to setup MFA')
@@ -73,7 +72,6 @@ export default function MFASettings() {
       setError('')
       if (!verificationCode.trim()) { setError('Please enter the verification code'); return }
       const body = { mfaMethod: selectedMethod, code: verificationCode }
-      if (selectedMethod === 'totp') { body.secret = setupData.secret; body.backupCodes = backupCodes }
       if (selectedMethod === 'sms')  { body.phoneNumber = phoneNumber }
       const response = await apiJson('/mfa/verify-setup', { method: 'POST', body: JSON.stringify(body) })
       if (response.success) {
@@ -142,8 +140,7 @@ export default function MFASettings() {
         : 'Receive one-time codes to your email address',
       enabledKey: 'email_mfa_enabled'
     },
-    { key: 'sms',   icon: '💬', name: 'SMS OTP',           desc: 'Receive verification codes via text message',    enabledKey: 'sms_mfa_enabled'   },
-    { key: 'totp',  icon: '🔐', name: 'Authenticator App', desc: 'Use Google Authenticator, Authy, or similar',    enabledKey: 'totp_mfa_enabled'  },
+    { key: 'sms',   icon: '💬', name: 'SMS OTP', desc: 'Receive verification codes via text message', enabledKey: 'sms_mfa_enabled' },
   ]
 
   return (
@@ -185,7 +182,7 @@ export default function MFASettings() {
           <p className={styles.cardTitle}>Verification Methods</p>
           <div className={styles.methodsGrid}>
             {METHODS.map(m => {
-              const isEnabled = settings[m.enabledKey]
+              const isEnabled = Boolean(settings[m.enabledKey])
               const isSmsChooser = m.key === 'sms' && setupStep === 'choose' && selectedMethod === 'sms'
 
               return (
@@ -247,7 +244,7 @@ export default function MFASettings() {
           <ul className={styles.recoList}>
             {[
               'Enable at least one MFA method to protect your account',
-              'Use an authenticator app (TOTP) for maximum security',
+              'Use email or SMS verification to secure your login',
               'Enable email or SMS as a backup verification method',
               'Store backup codes in a secure, offline location',
               'Review your account login activity regularly',
@@ -264,60 +261,22 @@ export default function MFASettings() {
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
 
             <h3 className={styles.modalTitle}>
-              {selectedMethod === 'totp' ? '🔐' : selectedMethod === 'email' ? '📧' : '💬'}
-              &nbsp;Configure {selectedMethod === 'totp' ? 'Authenticator App' : selectedMethod === 'email' ? 'Email OTP' : 'SMS OTP'}
+              {selectedMethod === 'email' ? '📧' : '💬'}
+              &nbsp;Configure {selectedMethod === 'email' ? 'Email OTP' : 'SMS OTP'}
             </h3>
 
-            {/* TOTP */}
-            {selectedMethod === 'totp' && setupData && (
-              <>
-                <div className={styles.modalSection}>
-                  <p className={styles.modalSectionLabel}>Step 1 — Scan QR Code</p>
-                  <p className={styles.modalSectionDesc}>Open your authenticator app and scan this QR code.</p>
-                  <div className={styles.qrWrapper}>
-                    <img src={setupData.qrCode} alt="TOTP QR Code" />
-                  </div>
-                </div>
-
-                <div className={styles.modalSection}>
-                  <p className={styles.modalSectionLabel}>Step 2 — Manual Entry</p>
-                  <p className={styles.modalSectionDesc}>Can't scan? Enter this secret key manually.</p>
-                  <div className={styles.secretBox}>{setupData.secret}</div>
-                </div>
-
-                <div className={styles.modalSection}>
-                  <p className={styles.modalSectionLabel}>Step 3 — Save Backup Codes</p>
-                  <p className={styles.modalSectionDesc}>Store these safely — each can only be used once.</p>
-                  <div className={styles.backupGrid}>
-                    {setupData.backupCodes.map((code, i) => (
-                      <div key={i} className={styles.backupCode}>{code}</div>
-                    ))}
-                  </div>
-                  <button
-                    className={styles.downloadBtn}
-                    onClick={() => { setBackupCodes(setupData.backupCodes); downloadBackupCodes() }}
-                  >
-                    ⬇ Download Backup Codes
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* Email / SMS */}
-            {(selectedMethod === 'email' || selectedMethod === 'sms') && (
-              <div className={styles.modalSection}>
-                <div className={styles.infoBox}>
-                  {selectedMethod === 'email'
-                    ? '📧 A verification code has been sent to your email address.'
-                    : '💬 A verification code has been sent to your phone.'}
-                  {setupData?.message && <><br /><br />{setupData.message}</>}
-                </div>
+            <div className={styles.modalSection}>
+              <div className={styles.infoBox}>
+                {selectedMethod === 'email'
+                  ? '📧 A verification code has been sent to your email address.'
+                  : '💬 A verification code has been sent to your phone.'}
+                {setupData?.message && <><br /><br />{setupData.message}</>}
               </div>
-            )}
+            </div>
 
             <div className={styles.modalSection}>
               <p className={styles.modalSectionLabel}>
-                {selectedMethod === 'totp' ? 'Step 4 — ' : ''}Enter Verification Code
+                Enter Verification Code
               </p>
               <input
                 autoFocus
